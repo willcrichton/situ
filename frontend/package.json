@@ -1,0 +1,26 @@
+{
+    "private": true,
+    "scripts": {
+        "init-repo": "pnpm install && pnpm build",
+        "clean": "pnpm -r --parallel exec rimraf dist node_modules && rimraf node_modules",
+        "lint": "pnpm run --parallel -r lint",
+        "build": "pnpm run -r build",
+        "watch": "pnpm run --parallel --no-bail -r build -w",
+        "test": "TODO",
+        "doc": "TODO",
+        "fmt": "prettier -w \"packages/*/lib/**/*.{ts,tsx}\"",
+        "commit-check": "pnpm clean; pnpm init-repo && pnpm lint && pnpm test"
+    },
+    "devDependencies": {
+        "@trivago/prettier-plugin-sort-imports": "^3.2.0",
+        "@typescript-eslint/eslint-plugin": "^5.26.0",
+        "@typescript-eslint/parser": "^5.26.0",
+        "eslint": "^8.16.0",
+        "eslint-plugin-prettier": "^4.0.0",
+        "eslint-plugin-react": "^7.30.0",
+        "eslint-plugin-react-hooks": "^4.5.0",
+        "prettier": "^2.6.2",
+        "rimraf": "^3.0.2",
+        "typescript": "^4.6.4"
+    }
+}

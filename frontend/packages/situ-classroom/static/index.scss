@@ -1,0 +1,30 @@
+body {
+  font-size: 18px;
+}
+
+#app {
+  width: 800px;
+  margin: 0 auto;
+}
+
+$monospace: "Inconsolata", monospace;
+
+.shell {
+  $size: 18px;
+  font-family: $monospace;
+  font-size: $size;
+
+  pre {
+    font-family: $monospace;
+    font-size: $size;
+    margin: 0 0 0.5em 0;
+  }
+
+  input {
+    font-family: $monospace;
+    font-size: $size;
+
+    border: none;
+    outline: 0;
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@wcrichto/situ-classroom",
+  "version": "0.1.0",
+  "description": "",
+  "author": "Will Crichton <wcrichto@cs.stanford.edu>",
+  "homepage": "https://github.com/willcrichton/situ",
+  "license": "MIT",
+  "scripts": {
+    "build": "node build.mjs",
+    "lint": "eslint --ext js,ts,tsx lib"
+  },
+  "devDependencies": {
+    "@nota-lang/esbuild-utils": "^0.3.7",
+    "@types/react": "^18.0.9",
+    "@types/react-dom": "^18.0.5",
+    "esbuild": "^0.14.39",
+    "esbuild-sass-plugin": "^2.2.6",
+    "react": "^18.1.0",
+    "react-dom": "^18.1.0"
+  },
+  "dependencies": {
+    "mobx": "^6.6.0",
+    "mobx-react": "^7.5.0"
+  }
+}
