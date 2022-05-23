@@ -1,16 +1,32 @@
+$size: 18px;
 body {
-  font-size: 18px;
-}
-
-#app {
-  width: 800px;
-  margin: 0 auto;
+  font-size: $size;
+  padding: 1rem;
 }
 
 $monospace: "Inconsolata", monospace;
 
+.container {
+  display: flex;
+  gap: 1rem;
+}
+
+.panel {
+  width: 80ch;
+}
+
+.editor {  
+  .cm-editor.cm-focused {
+    outline: 0;
+  }
+
+  .cm-content {
+    font-family: $monospace;
+    font-size: $size;    
+  }
+} 
+
 .shell {
-  $size: 18px;
   font-family: $monospace;
   font-size: $size;
 

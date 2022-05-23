@@ -1,17 +1,28 @@
-import React, { useState } from "react";
+import React, { PropsWithChildren, useState } from "react";
 import * as ReactDOM from "react-dom/client";
-
-import { Client, ClientContext } from "./client";
-import { Shell } from "./shell";
 
 import "../static/index.html";
 import "../static/index.scss";
+import { Client, ClientContext } from "./client";
+import { Editor } from "./editor";
+import { Shell } from "./shell";
+
+let Panel: React.FC<PropsWithChildren<{}>> = ({ children }) => (
+  <div className="panel">{children}</div>
+);
 
 let App: React.FC = () => {
   let [client] = useState(() => new Client());
   return (
     <ClientContext.Provider value={client}>
-      <Shell />
+      <div className="container">
+        <Panel>
+          <Editor />
+        </Panel>
+        <Panel>
+          <Shell />
+        </Panel>
+      </div>
     </ClientContext.Provider>
   );
 };

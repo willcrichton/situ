@@ -1,9 +1,7 @@
 use anyhow::Result;
 use bollard::{
-  container::{Config, CreateContainerOptions, LogOutput, StartContainerOptions},
+  container::LogOutput,
   exec::{CreateExecOptions, StartExecResults},
-  models::ContainerCreateResponse,
-  Docker,
 };
 use futures_util::StreamExt;
 use std::future::Future;
@@ -13,52 +11,31 @@ use tokio::{
   task::JoinHandle,
 };
 
+use crate::container::Container;
+
 pub struct Shell {
   input: Pin<Box<dyn AsyncWrite + Send>>,
-  output_handle: JoinHandle<()>,
+  _output_handle: JoinHandle<()>,
 }
 
 impl Shell {
   pub async fn new<Fut>(
-    docker: &Docker,
+    container: &Container,
     mut handle_output: impl (FnMut(LogOutput) -> Fut) + Send + 'static,
   ) -> Result<Self>
   where
     Fut: Future + Send + 'static,
   {
-    let options: Option<CreateContainerOptions<String>> = None;
-    let ContainerCreateResponse { id, .. } = docker
-      .create_container(
-        options,
-        Config {
-          tty: Some(true),
-          image: Some("rust"),
-          ..Default::default()
-        },
-      )
+    let exec = container
+      .exec(CreateExecOptions {
+        attach_stdout: Some(true),
+        attach_stderr: Some(true),
+        attach_stdin: Some(true),
+        cmd: Some(vec!["bash"]),
+        ..Default::default()
+      })
       .await?;
-    log::info!("Created container with id: {id}");
-
-    let options: Option<StartContainerOptions<String>> = None;
-    docker.start_container(&id, options).await?;
-    log::info!("Container started: {id}");
-
-    let exec = docker
-      .create_exec(
-        &id,
-        CreateExecOptions {
-          attach_stdout: Some(true),
-          attach_stderr: Some(true),
-          attach_stdin: Some(true),
-          cmd: Some(vec!["bash"]),
-          ..Default::default()
-        },
-      )
-      .await?;
-    if let StartExecResults::Attached { input, mut output } =
-      docker.start_exec(&exec.id, None).await?
-    {
-      log::info!("Attached shell to container: {}", exec.id);
+    if let StartExecResults::Attached { input, mut output } = exec {
       let output_handle = tokio::spawn(async move {
         while let Some(Ok(msg)) = output.next().await {
           handle_output(msg).await;
@@ -66,7 +43,7 @@ impl Shell {
       });
       Ok(Self {
         input,
-        output_handle,
+        _output_handle: output_handle,
       })
     } else {
       unreachable!()

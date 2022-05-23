@@ -5,13 +5,23 @@ export interface ShellExec {
   command: string;
 }
 
+export interface OpenFile {
+  type: "OpenFile";
+  path: string;
+}
+
 export interface ShellOutput {
   type: "ShellOutput";
   output: string;
 }
 
-export type ClientMessage = ShellExec;
-export type ServerMessage = ShellOutput;
+export interface FileContents {
+  type: "FileContents";
+  contents: string;
+}
+
+export type ClientMessage = ShellExec | OpenFile;
+export type ServerMessage = ShellOutput | FileContents;
 
 export type Listener = (message: any) => void;
 

@@ -6,10 +6,8 @@
         "lint": "pnpm run --parallel -r lint",
         "build": "pnpm run -r build",
         "watch": "pnpm run --parallel --no-bail -r build -w",
-        "test": "TODO",
-        "doc": "TODO",
         "fmt": "prettier -w \"packages/*/lib/**/*.{ts,tsx}\"",
-        "commit-check": "pnpm clean; pnpm init-repo && pnpm lint && pnpm test"
+        "commit-check": "pnpm clean; pnpm init-repo && pnpm lint"
     },
     "devDependencies": {
         "@trivago/prettier-plugin-sort-imports": "^3.2.0",
