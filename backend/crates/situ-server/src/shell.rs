@@ -4,8 +4,8 @@ use bollard::{
   exec::{CreateExecOptions, StartExecResults},
 };
 use futures_util::StreamExt;
-use std::future::Future;
-use std::pin::Pin;
+use std::{future::Future, path::PathBuf};
+use std::{path::Path, pin::Pin};
 use tokio::{
   io::{AsyncWrite, AsyncWriteExt},
   task::JoinHandle,
@@ -15,6 +15,7 @@ use crate::container::Container;
 
 pub struct Shell {
   input: Pin<Box<dyn AsyncWrite + Send>>,
+  cwd: PathBuf,
   _output_handle: JoinHandle<()>,
 }
 
@@ -35,25 +36,71 @@ impl Shell {
         ..Default::default()
       })
       .await?;
+
     if let StartExecResults::Attached { input, mut output } = exec {
-      let output_handle = tokio::spawn(async move {
+      let _output_handle = tokio::spawn(async move {
         while let Some(Ok(msg)) = output.next().await {
           handle_output(msg).await;
         }
       });
+      let cwd = PathBuf::from("/");
       Ok(Self {
         input,
-        _output_handle: output_handle,
+        cwd,
+        _output_handle,
       })
     } else {
       unreachable!()
     }
   }
 
-  pub async fn run(&mut self, command: impl AsRef<str>) -> Result<()> {
-    let input = format!("{}\n", command.as_ref());
-    self.input.write_all(input.as_bytes()).await?;
+  pub fn cwd(&self) -> &Path {
+    self.cwd.as_ref()
+  }
 
+  pub async fn run(&mut self, command: impl AsRef<str>) -> Result<()> {
+    let command = command.as_ref();
+
+    // TODO: this is super hacky and will NOT handle lots of edge cases,
+    // like if any other command changes the cwd.
+    let parts = command.split(' ').collect::<Vec<_>>();
+    if parts[0] == "cd" && parts.len() > 1 {
+      self.cwd.push(parts[1]);
+    }
+
+    let input = format!("{}\n", command);
+    self.input.write_all(input.as_bytes()).await?;
+    Ok(())
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+  use bollard::Docker;
+  use std::{sync::Arc, time::Duration};
+  use tokio::sync::Mutex;
+
+  #[tokio::test]
+  async fn shell_test() -> Result<()> {
+    let docker = Arc::new(Docker::connect_with_local_defaults()?);
+    let container = Container::new(&docker).await?;
+    let stdout = Arc::new(Mutex::new(Vec::new()));
+    let stdout_ref = Arc::clone(&stdout);
+    let mut shell = Shell::new(&container, move |log| {
+      let stdout_ref = Arc::clone(&stdout_ref);
+      async move {
+        stdout_ref.lock().await.push(format!("{}", log));
+      }
+    })
+    .await?;
+    shell.run("echo hey").await?;
+
+    // TODO: this might be flaky one day
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    assert_eq!(*stdout.lock().await, vec!["hey\n".to_owned()]);
+
+    container.cleanup().await?;
     Ok(())
   }
 }

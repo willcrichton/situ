@@ -10,6 +10,12 @@ export interface OpenFile {
   path: string;
 }
 
+export interface SaveFile {
+  type: "SaveFile";
+  path: string;
+  contents: string;
+}
+
 export interface ShellOutput {
   type: "ShellOutput";
   output: string;
@@ -18,9 +24,10 @@ export interface ShellOutput {
 export interface FileContents {
   type: "FileContents";
   contents: string;
+  path: string;
 }
 
-export type ClientMessage = ShellExec | OpenFile;
+export type ClientMessage = ShellExec | OpenFile | SaveFile;
 export type ServerMessage = ShellOutput | FileContents;
 
 export type Listener = (message: any) => void;

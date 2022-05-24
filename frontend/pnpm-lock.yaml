@@ -30,6 +30,7 @@ importers:
     specifiers:
       '@codemirror/basic-setup': ^0.20.0
       '@codemirror/lang-rust': ^0.20.0
+      '@codemirror/view': ^0.20.6
       '@nota-lang/esbuild-utils': ^0.3.7
       '@types/react': ^18.0.9
       '@types/react-dom': ^18.0.5
@@ -42,6 +43,7 @@ importers:
     devDependencies:
       '@codemirror/basic-setup': 0.20.0
       '@codemirror/lang-rust': 0.20.0
+      '@codemirror/view': 0.20.6
       '@nota-lang/esbuild-utils': 0.3.7_esbuild@0.14.39
       '@types/react': 18.0.9
       '@types/react-dom': 18.0.5

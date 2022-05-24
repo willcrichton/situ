@@ -12,14 +12,15 @@
   "devDependencies": {
     "@codemirror/basic-setup": "^0.20.0",
     "@codemirror/lang-rust": "^0.20.0",
+    "@codemirror/view": "^0.20.6",
     "@nota-lang/esbuild-utils": "^0.3.7",
     "@types/react": "^18.0.9",
     "@types/react-dom": "^18.0.5",
     "esbuild": "^0.14.39",
     "esbuild-sass-plugin": "^2.2.6",
-    "react": "^18.1.0",
-    "react-dom": "^18.1.0",
     "mobx": "^6.6.0",
-    "mobx-react": "^7.5.0"
+    "mobx-react": "^7.5.0",
+    "react": "^18.1.0",
+    "react-dom": "^18.1.0"
   }
 }
