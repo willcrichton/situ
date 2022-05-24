@@ -63,12 +63,16 @@ impl Shell {
 
     // TODO: this is super hacky and will NOT handle lots of edge cases,
     // like if any other command changes the cwd.
-    let parts = command.split(' ').collect::<Vec<_>>();
+    let mut parts = command.split(' ').collect::<Vec<_>>();
     if parts[0] == "cd" && parts.len() > 1 {
       self.cwd.push(parts[1]);
     }
 
-    let input = format!("{}\n", command);
+    if parts[0] == "cargo" {
+      parts.push("--color=always");
+    }
+
+    let input = format!("{}\n", parts.join(" "));
     self.input.write_all(input.as_bytes()).await?;
     Ok(())
   }

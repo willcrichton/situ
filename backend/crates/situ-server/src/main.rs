@@ -136,7 +136,7 @@ async fn handle_message(
             input.flush().await?;
           } else {
             unreachable!()
-          }          
+          }
         }
       }
     }
