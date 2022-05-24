@@ -112,7 +112,7 @@ async fn container_test() -> Result<()> {
   let container = Container::new(&docker).await?;
 
   let output = container.exec_output(vec!["echo", "hey"]).await?;
-  assert_eq!(output, "hey\n");
+  assert_eq!(output, "hey");
 
   container.cleanup().await?;
 
