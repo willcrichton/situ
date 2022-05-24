@@ -97,7 +97,7 @@ mod test {
     shell.run("echo hey").await?;
 
     // TODO: this might be flaky one day
-    tokio::time::sleep(Duration::from_millis(100)).await;
+    tokio::time::sleep(Duration::from_millis(1000)).await;
     assert_eq!(*stdout.lock().await, vec!["hey\n".to_owned()]);
 
     container.cleanup().await?;
