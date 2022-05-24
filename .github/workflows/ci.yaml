@@ -14,7 +14,8 @@ jobs:
       - run: docker pull rust
 
       - uses: Swatinem/rust-cache@v1
-        working-directory: backend
+        with:
+          working-directory: backend
 
       - run: cargo test
         working-directory: backend
