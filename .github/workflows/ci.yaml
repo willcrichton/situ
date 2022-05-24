@@ -8,5 +8,6 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+      - run: docker pull rust
       - run: cargo test
         working-directory: backend
