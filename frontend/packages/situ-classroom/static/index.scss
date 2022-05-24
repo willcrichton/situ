@@ -2,6 +2,7 @@ $size: 18px;
 body {
   font-size: $size;
   padding: 1rem;
+  margin: 0;
 }
 
 $monospace: "Inconsolata", monospace;
@@ -13,6 +14,8 @@ $monospace: "Inconsolata", monospace;
 
 .panel {
   width: 80ch;
+  height: calc(100vh - 2rem); /* 2rem for body margin */
+  overflow-y: auto;
 }
 
 .editor {  
@@ -37,10 +40,13 @@ $monospace: "Inconsolata", monospace;
   }
 
   input {
+    width: calc(100% - 3ch); /* 3ch for "$ " prefix */
     font-family: $monospace;
     font-size: $size;
 
     border: none;
     outline: 0;
+    margin: 0;
+    padding: 0;
   }
 }

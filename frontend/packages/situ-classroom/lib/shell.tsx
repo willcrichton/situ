@@ -1,11 +1,12 @@
 import { action } from "mobx";
 import { observer, useLocalObservable } from "mobx-react";
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useEffect, useRef } from "react";
 
 import { ClientContext, ClientMessage, ShellOutput } from "./client";
 
 export let Shell = observer(() => {
   let client = useContext(ClientContext)!;
+  let ref = useRef<HTMLDivElement>(null);
   let state = useLocalObservable<{ lines: string[] }>(() => ({
     lines: [],
   }));
@@ -18,6 +19,12 @@ export let Shell = observer(() => {
       })
     );
   }, []);
+
+  useEffect(() => {
+    let el = ref.current!;
+    // TODO: this is anti-modular
+    (el.parentNode! as HTMLDivElement).scrollTo(0, el.clientHeight);
+  }, [state.lines.length]);
 
   let onKeyUp: React.KeyboardEventHandler<HTMLInputElement> = action(e => {
     if (e.key == "Enter") {
@@ -44,7 +51,7 @@ export let Shell = observer(() => {
   });
 
   return (
-    <div className="shell">
+    <div className="shell" ref={ref}>
       {state.lines.map((line, i) => (
         <pre key={i}>{line}</pre>
       ))}
