@@ -14,7 +14,7 @@ Then separately start the frontend:
 ```
 cd frontend
 pnpm init-repo
-cd dist
+cd packages/situ-classroom/dist
 python3 -m http.server
 ```
 
