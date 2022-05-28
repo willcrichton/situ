@@ -5,7 +5,7 @@ import "../static/index.html";
 import "../static/index.scss";
 import { Client, ClientContext } from "./client";
 import { Editor } from "./editor";
-import { Actions, Recorder, RecorderContext, ReplayContext, Replayer } from "./recorder";
+import { RecordContext, RecordState, Recorder, ReplayContext, ReplayState } from "./recorder";
 import { Shell } from "./shell";
 
 let Panel: React.FC<PropsWithChildren<{}>> = ({ children }) => (
@@ -14,11 +14,11 @@ let Panel: React.FC<PropsWithChildren<{}>> = ({ children }) => (
 
 let App: React.FC = () => {
   let [client] = useState(() => new Client());
-  let [recorder] = useState(() => new Actions());
-  let [replayer] = useState(() => new Replayer(recorder));
+  let [recorder] = useState(() => new RecordState());
+  let [replayer] = useState(() => new ReplayState(recorder));
   return (
     <ClientContext.Provider value={client}>
-      <RecorderContext.Provider value={recorder}>
+      <RecordContext.Provider value={recorder}>
         <ReplayContext.Provider value={replayer}>
           <Recorder />
           <div className="container">
@@ -30,7 +30,7 @@ let App: React.FC = () => {
             </Panel>
           </div>
         </ReplayContext.Provider>
-      </RecorderContext.Provider>
+      </RecordContext.Provider>
     </ClientContext.Provider>
   );
 };

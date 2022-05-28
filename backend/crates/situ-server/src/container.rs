@@ -1,9 +1,10 @@
-use std::{sync::Arc};
+use std::sync::Arc;
 
 use anyhow::Result;
 use bollard::{
   container::{
-    Config, CreateContainerOptions, LogOutput, RemoveContainerOptions, StartContainerOptions,
+    Config, CreateContainerOptions, LogOutput, RemoveContainerOptions,
+    StartContainerOptions,
   },
   errors::Error,
   exec::{CreateExecOptions, StartExecResults},
@@ -23,14 +24,11 @@ impl Container {
   pub async fn new(docker: &Arc<Docker>) -> Result<Self, Error> {
     let options: Option<CreateContainerOptions<String>> = None;
     let ContainerCreateResponse { id, .. } = docker
-      .create_container(
-        options,
-        Config {
-          tty: Some(true), // to keep the container alive
-          image: Some("rust"),
-          ..Default::default()
-        },
-      )
+      .create_container(options, Config {
+        tty: Some(true), // to keep the container alive
+        image: Some("rust"),
+        ..Default::default()
+      })
       .await?;
     log::info!("Created container with id: {id}");
 

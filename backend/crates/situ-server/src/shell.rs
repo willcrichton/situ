@@ -1,11 +1,15 @@
+use std::{
+  future::Future,
+  path::{Path, PathBuf},
+  pin::Pin,
+};
+
 use anyhow::Result;
 use bollard::{
   container::LogOutput,
   exec::{CreateExecOptions, StartExecResults},
 };
 use futures_util::StreamExt;
-use std::{future::Future, path::PathBuf};
-use std::{path::Path, pin::Pin};
 use tokio::{
   io::{AsyncWrite, AsyncWriteExt},
   task::JoinHandle,
@@ -80,10 +84,12 @@ impl Shell {
 
 #[cfg(test)]
 mod test {
-  use super::*;
-  use bollard::Docker;
   use std::{sync::Arc, time::Duration};
+
+  use bollard::Docker;
   use tokio::sync::Mutex;
+
+  use super::*;
 
   #[tokio::test]
   async fn shell_test() -> Result<()> {

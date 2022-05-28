@@ -1,20 +1,20 @@
-use self::container::Container;
-use self::shell::Shell;
-use anyhow::Result;
+use std::{ops::ControlFlow, path::PathBuf, sync::Arc};
 
-use bollard::exec::{CreateExecOptions, StartExecResults};
-use bollard::Docker;
-use futures_util::stream::SplitSink;
-use futures_util::{SinkExt, StreamExt};
+use anyhow::Result;
+use bollard::{
+  exec::{CreateExecOptions, StartExecResults},
+  Docker,
+};
+use futures_util::{stream::SplitSink, SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
-use std::ops::ControlFlow;
-use std::path::PathBuf;
-use std::sync::Arc;
-use tokio::io::AsyncWriteExt;
-use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::Mutex;
-use tokio_tungstenite::tungstenite::Message;
-use tokio_tungstenite::WebSocketStream;
+use tokio::{
+  io::AsyncWriteExt,
+  net::{TcpListener, TcpStream},
+  sync::Mutex,
+};
+use tokio_tungstenite::{tungstenite::Message, WebSocketStream};
+
+use self::{container::Container, shell::Shell};
 
 mod container;
 mod shell;
@@ -67,12 +67,9 @@ async fn handle_connection(docker: Arc<Docker>, stream: TcpStream) -> Result<()>
   let handle_shell_output = move |output| {
     let writer_ref = Arc::clone(&writer_ref);
     async move {
-      send_message(
-        &writer_ref,
-        ServerMessage::ShellOutput {
-          output: format!("{}", output),
-        },
-      )
+      send_message(&writer_ref, ServerMessage::ShellOutput {
+        output: format!("{}", output),
+      })
       .await
       .unwrap();
     }
@@ -80,7 +77,9 @@ async fn handle_connection(docker: Arc<Docker>, stream: TcpStream) -> Result<()>
   let mut shell = Shell::new(&container, handle_shell_output).await?;
 
   while let Some(msg) = read.next().await {
-    if let ControlFlow::Break(_) = handle_message(msg?, &writer, &container, &mut shell).await? {
+    if let ControlFlow::Break(_) =
+      handle_message(msg?, &writer, &container, &mut shell).await?
+    {
       break;
     }
   }

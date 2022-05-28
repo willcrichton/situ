@@ -6,7 +6,7 @@ import React, { useContext, useEffect, useRef } from "react";
 import ReactTestUtils from "react-dom/test-utils";
 
 import { ClientContext, ClientMessage, ShellOutput } from "./client";
-import { Action, RecorderContext, ReplayContext } from "./recorder";
+import { Action, RecordContext, ReplayContext } from "./recorder";
 
 interface ShellAction extends Action {
   type: "ShellAction";
@@ -16,7 +16,7 @@ interface ShellAction extends Action {
 
 export let Shell = observer(() => {
   let client = useContext(ClientContext)!;
-  let recorder = useContext(RecorderContext);
+  let recorder = useContext(RecordContext);
   let replayer = useContext(ReplayContext);
   let containerRef = useRef<HTMLDivElement>(null);
   let inputRef = useRef<HTMLInputElement>(null);
@@ -50,7 +50,7 @@ export let Shell = observer(() => {
     let el = e.target as HTMLInputElement;
     let command = el.value;
 
-    if (recorder) {
+    if (recorder && recorder.recording) {
       let action: ShellAction = {
         type: "ShellAction",
         key: e.key,
