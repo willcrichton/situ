@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{env, iter, process::Command, sync::Arc};
 
 use anyhow::Result;
 use bollard::{
@@ -8,7 +8,7 @@ use bollard::{
   },
   errors::Error,
   exec::{CreateExecOptions, StartExecResults},
-  models::ContainerCreateResponse,
+  models::{ContainerCreateResponse, HostConfig},
   Docker,
 };
 use futures_util::StreamExt;
@@ -21,15 +21,21 @@ pub struct Container {
 }
 
 impl Container {
-  pub async fn new(docker: &Arc<Docker>) -> Result<Self, Error> {
+  pub async fn new(docker: &Arc<Docker>, image: &str) -> Result<Self, Error> {
     let options: Option<CreateContainerOptions<String>> = None;
-    let ContainerCreateResponse { id, .. } = docker
-      .create_container(options, Config {
-        tty: Some(true), // to keep the container alive
-        image: Some("rust"),
+    let cwd = env::current_dir().unwrap();
+    let mount_path = cwd.join("mount");
+    let config = Config {
+      tty: Some(true), // to keep the container alive
+      image: Some(image),
+      host_config: Some(HostConfig {
+        binds: Some(vec![format!("{}:/mnt", mount_path.display())]),
         ..Default::default()
-      })
-      .await?;
+      }),
+      ..Default::default()
+    };
+    let ContainerCreateResponse { id, .. } =
+      docker.create_container(options, config).await?;
     log::info!("Created container with id: {id}");
 
     let options: Option<StartContainerOptions<String>> = None;
@@ -51,14 +57,30 @@ impl Container {
     self.docker.start_exec(&exec.id, None).await
   }
 
-  pub async fn exec_output(
-    &self,
-    cmd: Vec<impl Into<String> + Serialize + Default>,
-  ) -> Result<String, Error> {
+  pub async fn exec_output(&self, cmd: &Command) -> Result<String, Error> {
+    let args = iter::once(cmd.get_program())
+      .chain(cmd.get_args())
+      .map(|s| s.to_string_lossy().to_string())
+      .collect::<Vec<_>>();
+    let env = cmd
+      .get_envs()
+      .map(|(k, v)| {
+        let ks = k.to_string_lossy();
+        match v {
+          Some(v) => format!("{ks}={}", v.to_string_lossy()),
+          None => format!("{ks}="),
+        }
+      })
+      .collect::<Vec<_>>();
+    let working_dir = cmd
+      .get_current_dir()
+      .map(|p| p.to_string_lossy().to_string());
     let exec = self
       .exec(CreateExecOptions {
         attach_stdout: Some(true),
-        cmd: Some(cmd),
+        working_dir,
+        env: Some(env),
+        cmd: Some(args),
         ..Default::default()
       })
       .await?;
@@ -107,9 +129,13 @@ impl Drop for Container {
 #[tokio::test]
 async fn container_test() -> Result<()> {
   let docker = Arc::new(Docker::connect_with_local_defaults()?);
-  let container = Container::new(&docker).await?;
+  docker.ping().await?;
 
-  let output = container.exec_output(vec!["echo", "hey"]).await?;
+  let container = Container::new(&docker, "rust").await?;
+
+  let mut cmd = Command::new("echo");
+  cmd.arg("hey");
+  let output = container.exec_output(&cmd).await?;
   assert_eq!(output, "hey");
 
   container.cleanup().await?;

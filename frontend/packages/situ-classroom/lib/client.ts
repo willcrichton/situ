@@ -1,34 +1,7 @@
 import React from "react";
 
-export interface ShellExec {
-  type: "ShellExec";
-  command: string;
-}
-
-export interface OpenFile {
-  type: "OpenFile";
-  path: string;
-}
-
-export interface SaveFile {
-  type: "SaveFile";
-  path: string;
-  contents: string;
-}
-
-export interface ShellOutput {
-  type: "ShellOutput";
-  output: string;
-}
-
-export interface FileContents {
-  type: "FileContents";
-  contents: string;
-  path: string;
-}
-
-export type ClientMessage = ShellExec | OpenFile | SaveFile;
-export type ServerMessage = ShellOutput | FileContents;
+import { ClientMessage } from "./bindings/ClientMessage";
+import { ServerMessage } from "./bindings/ServerMessage";
 
 export type Listener = (message: any) => void;
 
@@ -56,7 +29,7 @@ export class Client {
     this.ws.send(JSON.stringify(message));
   }
 
-  addListener(type: string, listener: Listener) {
+  addListener<T extends string>(type: T, listener: (message: ServerMessage & { type: T }) => void) {
     if (!(type in this.listeners)) {
       this.listeners[type] = [];
     }

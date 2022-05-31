@@ -7,6 +7,7 @@ import { Client, ClientContext } from "./client";
 import { Editor } from "./editor";
 import { RecordContext, RecordState, Recorder, ReplayContext, ReplayState } from "./recorder";
 import { Shell } from "./shell";
+import { Visualizer } from "./visualizer";
 
 let Panel: React.FC<PropsWithChildren<{}>> = ({ children }) => (
   <div className="panel">{children}</div>
@@ -23,6 +24,7 @@ let App: React.FC = () => {
           <Recorder />
           <div className="container">
             <Panel>
+            <Visualizer />
               <Editor />
             </Panel>
             <Panel>

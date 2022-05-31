@@ -16,3 +16,5 @@ futures-util = "0.3"
 tokio-tungstenite = "0.17"
 serde = {version = "1", features = ["derive"]}
 serde_json = "1"
+ts-rs = "6"
+mirivis = { path = "../mirivis" }

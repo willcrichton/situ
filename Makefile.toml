@@ -1,0 +1,78 @@
+[config]
+skip_core_tasks = true
+
+
+## BUILD
+[tasks.setup-frontend]
+command = "pnpm"
+args = ["install"]
+cwd = "frontend"
+condition = { files_not_exist = ["frontend/node_modules"] }
+
+[tasks.build-frontend]
+command = "pnpm"
+args = ["build"]
+cwd = "frontend"
+dependencies = ["setup-frontend", "build-backend"]
+
+[tasks.build-backend-bindings]
+command = "cargo"
+args = ["test", "export_bindings"]
+cwd = "backend"
+
+[tasks.build-backend]
+command = "cargo"
+args = ["build"]
+cwd = "backend"
+
+[tasks.build.run_task]
+name = ["build-backend", "build-backend-bindings", "build-frontend"]
+
+
+## WATCH
+[tasks.serve-frontend]
+command = "basic-http-server"
+cwd = "frontend/packages/situ-classroom/dist"
+install_crate = { crate_name = "basic-http-server" }
+
+[tasks.watch-frontend]
+command = "pnpm"
+args = ["watch"]
+cwd = "frontend"
+dependencies = ["setup-frontend"]
+
+[tasks.watch-backend]
+command = "cargo"
+args = ["watch", "-d", "2", "-x", "run --bin situ-server"]
+cwd = "backend"
+install_crate = { crate_name = "cargo-watch" }
+
+[tasks.watch.run_task]
+name = ["serve-frontend", "watch-frontend", "watch-backend"]
+parallel = true
+fork = true
+
+
+## CLEAN
+[tasks.clean-backend.run_task]
+name = ["clean-backend-cargo", "clean-backend-bindings"]
+
+[tasks.clean-backend-cargo]
+command = "cargo"
+args = ["clean"]
+cwd = "backend"
+
+[tasks.clean-backend-bindings]
+script_runner = "@shell"
+script = "rm -rf crates/*/bindings"
+cwd = "backend"
+
+[tasks.clean-frontend]
+command = "pnpm"
+args = ["clean"]
+cwd = "frontend"
+
+[tasks.clean.run_task]
+name = ["clean-backend", "clean-frontend"]
+parallel = true
+fork = true

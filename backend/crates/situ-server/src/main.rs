@@ -1,4 +1,4 @@
-use std::{ops::ControlFlow, path::PathBuf, sync::Arc};
+use std::{ops::ControlFlow, path::PathBuf, process::Command, sync::Arc};
 
 use anyhow::Result;
 use bollard::{
@@ -6,6 +6,7 @@ use bollard::{
   Docker,
 };
 use futures_util::{stream::SplitSink, SinkExt, StreamExt};
+use mirivis::MVOutput;
 use serde::{Deserialize, Serialize};
 use tokio::{
   io::AsyncWriteExt,
@@ -13,25 +14,30 @@ use tokio::{
   sync::Mutex,
 };
 use tokio_tungstenite::{tungstenite::Message, WebSocketStream};
+use ts_rs::TS;
 
 use self::{container::Container, shell::Shell};
 
 mod container;
 mod shell;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, TS)]
 #[serde(tag = "type")]
+#[ts(export)]
 enum ClientMessage {
   ShellExec { command: String },
   OpenFile { path: String },
   SaveFile { path: String, contents: String },
+  RunVis,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, TS)]
 #[serde(tag = "type")]
+#[ts(export)]
 enum ServerMessage {
   ShellOutput { output: String },
   FileContents { contents: String, path: PathBuf },
+  VisOutput { output: MVOutput },
 }
 
 #[tokio::main]
@@ -39,6 +45,8 @@ async fn main() -> Result<()> {
   env_logger::init();
 
   let docker = Arc::new(Docker::connect_with_local_defaults()?);
+  docker.ping().await?;
+
   let listener = TcpListener::bind("127.0.0.1:8080").await?;
 
   while let Ok((stream, _)) = listener.accept().await {
@@ -59,7 +67,7 @@ async fn handle_connection(docker: Arc<Docker>, stream: TcpStream) -> Result<()>
   let (writer, mut read) = ws_stream.split();
   let writer = Arc::new(Mutex::new(writer));
 
-  let container = Container::new(&docker).await?;
+  let container = Container::new(&docker, "mirivis").await?;
 
   // TODO: dumb double-clone solution. Is there a better way?
   // See: https://www.fpcomplete.com/blog/captures-closures-async/
@@ -107,14 +115,15 @@ async fn handle_message(
 
         ClientMessage::OpenFile { path } => {
           let path = shell.cwd().join(path);
-          let resolved = PathBuf::from(
-            container
-              .exec_output(vec!["ls".to_owned(), path.display().to_string()])
-              .await?,
-          );
-          let contents = container
-            .exec_output(vec!["cat".to_owned(), resolved.display().to_string()])
-            .await?;
+
+          let mut cmd = Command::new("ls");
+          cmd.arg(path).current_dir(shell.cwd());
+          let resolved = PathBuf::from(container.exec_output(&cmd).await?);
+
+          let mut cmd = Command::new("cat");
+          cmd.arg(&resolved);
+          let contents = container.exec_output(&cmd).await?;
+
           let message = ServerMessage::FileContents {
             contents,
             path: resolved,
@@ -136,6 +145,17 @@ async fn handle_message(
           } else {
             unreachable!()
           }
+        }
+
+        ClientMessage::RunVis => {
+          let mut cmd = Command::new("cargo");
+          cmd
+            .arg("mirivis")
+            .env("RUSTC_LOG", "error")
+            .current_dir(shell.cwd());
+          let output_str = container.exec_output(&cmd).await?;
+          let output = serde_json::from_str(&output_str)?;
+          send_message(writer, ServerMessage::VisOutput { output }).await?;
         }
       }
     }

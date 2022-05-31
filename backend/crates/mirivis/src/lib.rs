@@ -13,8 +13,16 @@ extern crate rustc_type_ir;
 use rustc_driver::Compilation;
 use rustc_interface::interface;
 use rustc_session::CtfeBacktrace;
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 mod eval;
+
+pub use eval::{MVFrame, MVValue};
+
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct MVOutput(pub Vec<MVFrame>);
 
 struct Callbacks;
 impl rustc_driver::Callbacks for Callbacks {
@@ -45,7 +53,7 @@ impl rustc_driver::Callbacks for Callbacks {
         }
       }
 
-      println!("{}", serde_json::to_string(&frames).unwrap());
+      println!("{}", serde_json::to_string(&MVOutput(frames)).unwrap());
     });
 
     compiler.session().abort_if_errors();

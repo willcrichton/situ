@@ -13,18 +13,20 @@ use rustc_middle::{
 use rustc_span::Symbol;
 use rustc_target::abi::Size;
 use rustc_type_ir::FloatTy;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 pub struct VisEvaluator<'mir, 'tcx> {
   tcx: TyCtxt<'tcx>,
   ecx: InterpCx<'mir, 'tcx, Evaluator<'mir, 'tcx>>,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, TS)]
 #[serde(tag = "type", content = "value")]
+#[ts(export)]
 pub enum MVValue {
   Bool(bool),
-  Char(char),
+  Char(String),
   Uint(u64),
   Int(i64),
   Float(f64),
@@ -36,7 +38,8 @@ pub enum MVValue {
   Unallocated,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, TS)]
+#[ts(export)]
 pub struct MVFrame {
   name: String,
   locals: HashMap<String, MVValue>,
@@ -82,7 +85,7 @@ impl<'mir, 'tcx> VisEvaluator<'mir, 'tcx> {
         };
         match ty.kind() {
           TyKind::Bool => MVValue::Bool(scalar.to_bool()?),
-          TyKind::Char => MVValue::Char(scalar.to_char()?),
+          TyKind::Char => MVValue::Char(scalar.to_char()?.to_string()),
           TyKind::Uint(uty) => MVValue::Uint(match uty.bit_width() {
             Some(width) => scalar.to_uint(Size::from_bits(width))? as u64,
             None => scalar.to_machine_usize(&self.ecx)? as u64,

@@ -5,7 +5,7 @@ import { action, reaction } from "mobx";
 import { observer, useLocalObservable } from "mobx-react";
 import React, { useContext, useEffect, useRef } from "react";
 
-import { ClientContext, FileContents } from "./client";
+import { ClientContext } from "./client";
 import { Action, RecordContext, ReplayContext } from "./recorder";
 
 enum EditorActionType {
@@ -42,7 +42,7 @@ export let Editor = observer(() => {
   useEffect(() => {
     client.addListener(
       "FileContents",
-      action((message: FileContents) => {
+      action(message => {
         state.contents = message.contents;
         state.path = message.path;
       })

@@ -5,7 +5,8 @@ import { observer, useLocalObservable } from "mobx-react";
 import React, { useContext, useEffect, useRef } from "react";
 import ReactTestUtils from "react-dom/test-utils";
 
-import { ClientContext, ClientMessage, ShellOutput } from "./client";
+import { ClientMessage } from "./bindings/ClientMessage";
+import { ClientContext } from "./client";
 import { Action, RecordContext, ReplayContext } from "./recorder";
 
 interface ShellAction extends Action {
@@ -32,7 +33,7 @@ export let Shell = observer(() => {
     let converter = new Convert();
     client.addListener(
       "ShellOutput",
-      action(({ output }: ShellOutput) => {
+      action(({ output }) => {
         output.split("\n").forEach(line => {
           state.lines.push(converter.toHtml(line));
         });

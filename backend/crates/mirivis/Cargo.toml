@@ -15,6 +15,7 @@ rustc_plugin = "0.5"
 textwrap = "0.15"
 anyhow = "1"
 flowistry = "0.5.23"
+ts-rs = "6"
 
 [package.metadata.rust-analyzer]
 rustc_private = true
