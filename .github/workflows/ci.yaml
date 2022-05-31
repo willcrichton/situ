@@ -11,15 +11,15 @@ jobs:
           profile: minimal
           toolchain: stable
 
-      - uses: davidB/rust-cargo-make@v1
-
-      - run: cargo make build
-
       - run: docker pull rust
 
       - uses: Swatinem/rust-cache@v1
         with:
           working-directory: backend
+
+      - uses: davidB/rust-cargo-make@v1
+
+      - run: cargo make build
 
       - run: cargo test
         working-directory: backend
