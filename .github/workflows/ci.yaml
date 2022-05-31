@@ -19,7 +19,7 @@ jobs:
 
       - uses: davidB/rust-cargo-make@v1
 
-      - run: cargo make build
+      - run: npm install -g pnpm && cargo make build
 
       - run: cargo test
         working-directory: backend
