@@ -95,7 +95,7 @@ mod test {
   async fn shell_test() -> Result<()> {
     let docker = Arc::new(Docker::connect_with_local_defaults()?);
     docker.ping().await?;
-    
+
     let container = Container::new(&docker, "rust").await?;
     let stdout = Arc::new(Mutex::new(Vec::new()));
     let stdout_ref = Arc::clone(&stdout);

@@ -1,6 +1,7 @@
+import JSZip from "jszip";
 import { action, makeAutoObservable } from "mobx";
 import { observer, useLocalObservable } from "mobx-react";
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useEffect, useState } from "react";
 
 export interface Action {
   type: string;
@@ -47,7 +48,26 @@ export class RecordState {
       timestamp: now() - this.start,
       ...action,
     });
-    console.log(this.actions);
+  }
+
+  async toZip(): Promise<string> {
+    let zip = new JSZip();
+    zip.file("actions.json", JSON.stringify(this.actions));
+    zip.file("audio.webm", new Blob(this.audioChunks));
+    let blob = await zip.generateAsync({ type: "blob" });
+    return URL.createObjectURL(blob);
+  }
+
+  async fromZip(content: ArrayBuffer) {
+    let zip = new JSZip();
+    await zip.loadAsync(content);
+
+    let [audioBlob, actionsStr] = await Promise.all([
+      zip.file("audio.webm")!.async("blob"),
+      zip.file("actions.json")!.async("string"),
+    ]);
+    this.audioUrl = URL.createObjectURL(audioBlob);
+    this.actions = JSON.parse(actionsStr);
   }
 }
 
@@ -64,7 +84,6 @@ export class ReplayState {
 
   replay() {
     let actions = this.actions.actions;
-    console.log(this.actions.audioUrl);
     let audio = new Audio(this.actions.audioUrl!);
     audio.play();
 
@@ -94,6 +113,30 @@ export class ReplayState {
 export let RecordContext = React.createContext<RecordState | null>(null);
 export let ReplayContext = React.createContext<ReplayState | null>(null);
 
+let Download = () => {
+  let recorder = useContext(RecordContext)!;
+
+  let [zipUrl, setZipUrl] = useState<string | null>(null);
+  useEffect(() => {
+    (async () => {
+      let url = await recorder.toZip();
+      setZipUrl(url);
+    })();
+  }, []);
+
+  return (
+    <>
+      {zipUrl ? (
+        <a href={zipUrl} download="lesson.zip">
+          Download
+        </a>
+      ) : (
+        "Generating..."
+      )}
+    </>
+  );
+};
+
 export let Recorder: React.FC = observer(() => {
   let replayer = useContext(ReplayContext)!;
   let recorder = useContext(RecordContext)!;
@@ -121,7 +164,6 @@ export let Recorder: React.FC = observer(() => {
         state.recorder.addEventListener(
           "dataavailable",
           action(function (e) {
-            console.log("got em");
             if (e.data.size > 0) recorder.audioChunks.push(e.data);
           })
         );
@@ -141,40 +183,11 @@ export let Recorder: React.FC = observer(() => {
       <>
         <input
           type="file"
-          onChange={event => {
-            recorder.audioUrl = URL.createObjectURL(event.target.files![0]);
-            console.log(recorder.audioUrl);
-          }}
-        />
-        <input
-          type="file"
           onChange={async event => {
-            let content = await event.target.files![0].text();
-            console.log(content);
-            recorder.actions = JSON.parse(content);
+            let content = await event.target.files![0].arrayBuffer();
+            await recorder.fromZip(content);
           }}
         />
-      </>
-    );
-  };
-
-  let Download = () => {
-    let audio = recorder.audioUrl!;
-    let actionsJson = JSON.stringify(recorder.actions);
-    let actionsBytes = new TextEncoder().encode(actionsJson);
-    let actions = URL.createObjectURL(
-      new Blob([actionsBytes], {
-        type: "application/json;charset=utf-8",
-      })
-    );
-    return (
-      <>
-        <a href={audio} download="audio.wav">
-          Download Audio
-        </a>
-        <a href={actions} download="actions.json">
-          Download Actions
-        </a>
       </>
     );
   };

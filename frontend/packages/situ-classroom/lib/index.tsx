@@ -1,5 +1,6 @@
-import React, { PropsWithChildren, useState } from "react";
+import React, { useState } from "react";
 import * as ReactDOM from "react-dom/client";
+import Split from "react-split";
 
 import "../static/index.html";
 import "../static/index.scss";
@@ -7,11 +8,8 @@ import { Client, ClientContext } from "./client";
 import { Editor } from "./editor";
 import { RecordContext, RecordState, Recorder, ReplayContext, ReplayState } from "./recorder";
 import { Shell } from "./shell";
+import { Transcript } from "./transcript";
 import { Visualizer } from "./visualizer";
-
-let Panel: React.FC<PropsWithChildren<{}>> = ({ children }) => (
-  <div className="panel">{children}</div>
-);
 
 let App: React.FC = () => {
   let [client] = useState(() => new Client());
@@ -23,13 +21,14 @@ let App: React.FC = () => {
         <ReplayContext.Provider value={replayer}>
           <Recorder />
           <div className="container">
-            <Panel>
-            <Visualizer />
-              <Editor />
-            </Panel>
-            <Panel>
-              <Shell />
-            </Panel>
+            <Split className="split horizontal" direction="horizontal">
+              <Split className="split vertical" direction="vertical">
+                <Editor />
+                <Visualizer />
+                <Shell />
+              </Split>
+              <Transcript />
+            </Split>
           </div>
         </ReplayContext.Provider>
       </RecordContext.Provider>

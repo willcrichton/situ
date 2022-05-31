@@ -3,8 +3,6 @@ name = "mirivis"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 miri = { git = "https://github.com/rust-lang/miri.git", rev = "b96610b3de5bc9fd346d90700ba881aca8d503f0" }
 log = "0.4"

@@ -27,7 +27,7 @@ module.exports = {
       "ScrollLogicalPosition": true,
       "JSX": true
   },
-  "ignorePatterns": ["*.d.ts"],
+  "ignorePatterns": ["*.d.ts", "packages/situ-classroom/lib/bindings/*"],
   "rules": {
       "react/prop-types": "off",
       "no-empty-pattern": "off",
@@ -35,7 +35,8 @@ module.exports = {
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
       "no-constant-condition": ["error", {"checkLoops": false}],
-      "prettier/prettier": "error"
+      "prettier/prettier": "error",
+      "react/no-unescaped-entities": "off"
   },
   "settings": {
       "react": {

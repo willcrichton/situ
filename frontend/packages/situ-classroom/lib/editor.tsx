@@ -124,7 +124,7 @@ export let Editor = observer(() => {
   }, []);
 
   return (
-    <div className="editor-wrapper" style={{ display: state.path ? "block" : "none" }}>
+    <div className="editor-wrapper">
       <div>
         File: <code>{state.path}</code>
       </div>
