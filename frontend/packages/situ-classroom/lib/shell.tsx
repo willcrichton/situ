@@ -5,9 +5,10 @@ import { observer, useLocalObservable } from "mobx-react";
 import React, { useContext, useEffect, useRef } from "react";
 import ReactTestUtils from "react-dom/test-utils";
 
+import { Action } from "./actions";
 import { ClientMessage } from "./bindings/ClientMessage";
 import { ClientContext } from "./client";
-import { Action, RecordContext, ReplayContext } from "./recorder";
+import { LessonContext } from "./lesson";
 
 interface ShellAction extends Action {
   type: "ShellAction";
@@ -17,8 +18,10 @@ interface ShellAction extends Action {
 
 export let Shell = observer(() => {
   let client = useContext(ClientContext)!;
-  let recorder = useContext(RecordContext);
-  let replayer = useContext(ReplayContext);
+  let lesson = useContext(LessonContext)!;
+  // let recorder = useContext(RecordContext);
+  // let replayer = useContext(ReplayContext);
+
   let containerRef = useRef<HTMLDivElement>(null);
   let inputRef = useRef<HTMLInputElement>(null);
   let state = useLocalObservable<{ lines: string[]; history: string[]; historyIndex: number }>(
@@ -39,6 +42,12 @@ export let Shell = observer(() => {
         });
       })
     );
+
+    lesson.actions.addListener("ShellAction", (action: ShellAction) => {
+      let input = inputRef.current!;
+      input.value = action.value;
+      ReactTestUtils.Simulate.keyUp(input, { key: action.key });
+    });
   }, []);
 
   useEffect(() => {
@@ -51,13 +60,13 @@ export let Shell = observer(() => {
     let el = e.target as HTMLInputElement;
     let command = el.value;
 
-    if (recorder && recorder.recording) {
+    if (lesson.isRecording()) {
       let action: ShellAction = {
         type: "ShellAction",
         key: e.key,
         value: el.value,
       };
-      recorder.addAction(action);
+      lesson.actions.addAction(action);
     }
 
     if (e.key == "Enter") {
@@ -94,16 +103,6 @@ export let Shell = observer(() => {
       }
     }
   });
-
-  useEffect(() => {
-    if (replayer) {
-      replayer.addListener("ShellAction", (action: ShellAction) => {
-        let input = inputRef.current!;
-        input.value = action.value;
-        ReactTestUtils.Simulate.keyUp(input, { key: action.key });
-      });
-    }
-  }, []);
 
   return (
     <div className="shell" ref={containerRef}>

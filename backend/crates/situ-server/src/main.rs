@@ -1,6 +1,6 @@
 use std::{ops::ControlFlow, path::PathBuf, process::Command, sync::Arc};
 
-use anyhow::Result;
+use anyhow::{anyhow, Context, Result};
 use bollard::{
   exec::{CreateExecOptions, StartExecResults},
   Docker,
@@ -45,7 +45,10 @@ async fn main() -> Result<()> {
   env_logger::init();
 
   let docker = Arc::new(Docker::connect_with_local_defaults()?);
-  docker.ping().await?;
+  docker
+    .ping()
+    .await
+    .context("Failed to connect to Docker, daemon is probably not running")?;
 
   let listener = TcpListener::bind("127.0.0.1:8080").await?;
 
@@ -67,7 +70,7 @@ async fn handle_connection(docker: Arc<Docker>, stream: TcpStream) -> Result<()>
   let (writer, mut read) = ws_stream.split();
   let writer = Arc::new(Mutex::new(writer));
 
-  let container = Container::new(&docker, "mirivis").await?;
+  let container = Arc::new(Container::new(&docker, "mirivis").await?);
 
   // TODO: dumb double-clone solution. Is there a better way?
   // See: https://www.fpcomplete.com/blog/captures-closures-async/
@@ -92,7 +95,11 @@ async fn handle_connection(docker: Arc<Docker>, stream: TcpStream) -> Result<()>
     }
   }
 
-  container.cleanup().await?;
+  drop(shell);
+  Arc::try_unwrap(container)
+    .map_err(|_| anyhow!("Hanging reference to container"))?
+    .cleanup()
+    .await?;
 
   Ok(())
 }
@@ -102,7 +109,7 @@ type SocketWriter = Arc<Mutex<SplitSink<WebSocketStream<TcpStream>, Message>>>;
 async fn handle_message(
   msg: Message,
   writer: &SocketWriter,
-  container: &Container,
+  container: &Arc<Container>,
   shell: &mut Shell,
 ) -> Result<ControlFlow<()>> {
   match msg {
@@ -114,10 +121,12 @@ async fn handle_message(
         }
 
         ClientMessage::OpenFile { path } => {
-          let path = shell.cwd().join(path);
+          let cwd_promise = shell.cwd();
+          let cwd = cwd_promise.await?;
+          let path = cwd.join(path);
 
           let mut cmd = Command::new("ls");
-          cmd.arg(path).current_dir(shell.cwd());
+          cmd.arg(path).current_dir(cwd);
           let resolved = PathBuf::from(container.exec_output(&cmd).await?);
 
           let mut cmd = Command::new("cat");
@@ -148,11 +157,12 @@ async fn handle_message(
         }
 
         ClientMessage::RunVis => {
+          let cwd = shell.cwd().await?;
           let mut cmd = Command::new("cargo");
           cmd
             .arg("mirivis")
             .env("RUSTC_LOG", "error")
-            .current_dir(shell.cwd());
+            .current_dir(cwd);
           let output_str = container.exec_output(&cmd).await?;
           let output = serde_json::from_str(&output_str)?;
           send_message(writer, ServerMessage::VisOutput { output }).await?;

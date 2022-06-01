@@ -1,29 +1,33 @@
+[env]
+RUST_LOG = "info"
+
 [config]
 skip_core_tasks = true
 
+[tasks.frontend]
+script.pre = "cd frontend"
+
+[tasks.backend]
+script.pre = "cd backend"
 
 ## BUILD
 [tasks.setup-frontend]
-command = "pnpm"
-args = ["install"]
-cwd = "frontend"
+extend = "frontend"
+script.main = "pnpm install"
 condition = { files_not_exist = ["frontend/node_modules"] }
 
 [tasks.build-frontend]
-command = "pnpm"
-args = ["build"]
-cwd = "frontend"
+extend = "frontend"
+script.main = "pnpm build"
 dependencies = ["setup-frontend", "build-backend"]
 
 [tasks.build-backend-bindings]
-command = "cargo"
-args = ["test", "export_bindings"]
-cwd = "backend"
+extend = "backend"
+script.main = "cargo test export_bindings"
 
 [tasks.build-backend]
-command = "cargo"
-args = ["build"]
-cwd = "backend"
+extend = "backend"
+script.main = "cargo build"
 
 [tasks.build.run_task]
 name = ["build-backend", "build-backend-bindings", "build-frontend"]
@@ -31,26 +35,26 @@ name = ["build-backend", "build-backend-bindings", "build-frontend"]
 
 ## WATCH
 [tasks.serve-frontend]
-command = "basic-http-server"
-cwd = "frontend/packages/situ-classroom/dist"
+extend = "frontend"
+script.main = "cd packages/situ-classroom/dist && basic-http-server"
 install_crate = { crate_name = "basic-http-server" }
 
+[tasks.serve-gentle]
+script = "cd $GENTLE_ROOT && python3 serve.py"
+
 [tasks.watch-frontend]
-command = "pnpm"
-args = ["watch"]
-cwd = "frontend"
+extend = "frontend"
+script.main = "pnpm watch"
 dependencies = ["setup-frontend"]
 
 [tasks.watch-backend]
-command = "cargo"
-args = ["watch", "-d", "2", "-x", "run --bin situ-server"]
-cwd = "backend"
+extend = "backend"
+script.main = "cargo watch -d 2 -x 'run --bin situ-server'"
 install_crate = { crate_name = "cargo-watch" }
 
 [tasks.watch.run_task]
-name = ["serve-frontend", "watch-frontend", "watch-backend"]
+name = ["serve-frontend", "serve-gentle", "watch-frontend", "watch-backend"]
 parallel = true
-fork = true
 
 
 ## CLEAN
@@ -58,21 +62,17 @@ fork = true
 name = ["clean-backend-cargo", "clean-backend-bindings"]
 
 [tasks.clean-backend-cargo]
-command = "cargo"
-args = ["clean"]
-cwd = "backend"
+extend = "backend"
+script.main = "cargo clean"
 
 [tasks.clean-backend-bindings]
-script_runner = "@shell"
-script = "rm -rf crates/*/bindings"
-cwd = "backend"
+extend = "backend"
+script.main = "rm -rf crates/*/bindings"
 
 [tasks.clean-frontend]
-command = "pnpm"
-args = ["clean"]
-cwd = "frontend"
+extend = "frontend"
+script.main = "pnpm clean"
 
 [tasks.clean.run_task]
 name = ["clean-backend", "clean-frontend"]
 parallel = true
-fork = true

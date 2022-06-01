@@ -57,6 +57,13 @@ impl Container {
     self.docker.start_exec(&exec.id, None).await
   }
 
+  pub async fn get_pid(&self, process: &str) -> Result<i64, Error> {
+    let mut cmd = Command::new("pidof");
+    cmd.arg(process);
+    let response = self.exec_output(&cmd).await?;
+    Ok(response.split(' ').next().unwrap().parse::<i64>().unwrap())
+  }
+
   pub async fn exec_output(&self, cmd: &Command) -> Result<String, Error> {
     let args = iter::once(cmd.get_program())
       .chain(cmd.get_args())

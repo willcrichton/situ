@@ -5,8 +5,9 @@ import { action, reaction } from "mobx";
 import { observer, useLocalObservable } from "mobx-react";
 import React, { useContext, useEffect, useRef } from "react";
 
+import { Action } from "./actions";
 import { ClientContext } from "./client";
-import { Action, RecordContext, ReplayContext } from "./recorder";
+import { LessonContext } from "./lesson";
 
 enum EditorActionType {
   EditorChangeAction = 1,
@@ -25,8 +26,9 @@ interface EditorSaveAction {
 type EditorAction = Action & { type: "EditorAction" } & (EditorChangeAction | EditorSaveAction);
 
 export let Editor = observer(() => {
-  let recorder = useContext(RecordContext);
-  let replayer = useContext(ReplayContext);
+  let lesson = useContext(LessonContext)!;
+  let client = useContext(ClientContext)!;
+
   let ref = useRef<HTMLDivElement>(null);
   let state = useLocalObservable<{
     language: string;
@@ -37,7 +39,6 @@ export let Editor = observer(() => {
     contents: "",
     path: null,
   }));
-  let client = useContext(ClientContext)!;
 
   useEffect(() => {
     client.addListener(
@@ -68,33 +69,30 @@ export let Editor = observer(() => {
         run(target) {
           saveFile(target.state);
 
-          if (recorder) {
+          if (lesson.isRecording()) {
             let action: EditorAction = {
               type: "EditorAction",
               subtype: EditorActionType.EditorSaveAction,
             };
-            recorder!.addAction(action);
+            lesson.actions.addAction(action);
           }
+
           return false;
         },
         preventDefault: true,
       },
     ]);
 
-    let recordExt = recorder
-      ? [
-          cm.EditorView.updateListener.of(update => {
-            if (update.docChanged) {
-              let action: EditorAction = {
-                type: "EditorAction",
-                subtype: EditorActionType.EditorChangeAction,
-                contents: update.state.doc.toJSON().join("\n"),
-              };
-              recorder!.addAction(action);
-            }
-          }),
-        ]
-      : [];
+    let recordExt = cm.EditorView.updateListener.of(update => {
+      if (update.docChanged && lesson.isRecording()) {
+        let action: EditorAction = {
+          type: "EditorAction",
+          subtype: EditorActionType.EditorChangeAction,
+          contents: update.state.doc.toJSON().join("\n"),
+        };
+        lesson.actions.addAction(action);
+      }
+    });
 
     let editor = new cm.EditorView({
       state: cm.EditorState.create({
@@ -110,15 +108,13 @@ export let Editor = observer(() => {
       });
     };
 
-    if (replayer) {
-      replayer.addListener("EditorAction", (action: EditorAction) => {
-        if (action.subtype == EditorActionType.EditorChangeAction) {
-          setContents(action.contents);
-        } else if (action.subtype == EditorActionType.EditorSaveAction) {
-          saveFile(editor.state);
-        }
-      });
-    }
+    lesson.actions.addListener("EditorAction", (action: EditorAction) => {
+      if (action.subtype == EditorActionType.EditorChangeAction) {
+        setContents(action.contents);
+      } else if (action.subtype == EditorActionType.EditorSaveAction) {
+        saveFile(editor.state);
+      }
+    });
 
     return reaction(() => state.contents, setContents);
   }, []);
