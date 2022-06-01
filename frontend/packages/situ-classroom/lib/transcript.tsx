@@ -3,7 +3,7 @@ import JSZip from "jszip";
 import _ from "lodash";
 import { action, makeAutoObservable, reaction } from "mobx";
 import { observer } from "mobx-react";
-import React, { useContext, useEffect, useRef } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 
 import { Lesson, LessonComponent, LessonContext } from "./lesson";
 
@@ -19,6 +19,12 @@ export interface Word {
   endOffset: number;
 }
 
+interface AlignedContent {
+  from: number;
+  to: number;
+  time: { start: number; end: number } | null;
+}
+
 export class Transcript implements LessonComponent {
   static TEXT_FILENAME: string = "transcript.txt";
   static ALIGNMENT_FILENAME: string = "alignment.json";
@@ -29,6 +35,61 @@ export class Transcript implements LessonComponent {
 
   constructor() {
     makeAutoObservable(this);
+  }
+
+  alignContent(): AlignedContent[] {
+    let transcriptChunkStart = 0;
+    let transcriptIndex = 0;
+    let alignmentIndex = 0;
+    let pieces: AlignedContent[] = [];
+
+    let flushChunk = () => {
+      if (transcriptChunkStart != transcriptIndex) {
+        let slice = this.transcript.slice(transcriptChunkStart, transcriptIndex);
+        let from = transcriptChunkStart;
+        slice.split("\n").forEach((substring, i) => {
+          if (i > 0) {
+            pieces.push({
+              from,
+              to: from + 1,
+              time: null,
+            });
+            from += 1;
+          }
+
+          pieces.push({
+            from,
+            to: from + substring.length,
+            time: null,
+          });
+          from += substring.length;
+        });
+      }
+    };
+
+    while (transcriptIndex < this.transcript.length && alignmentIndex < this.alignment.length) {
+      let curWord = this.alignment[alignmentIndex];
+      let length = curWord.word.length;
+      if (this.transcript.slice(transcriptIndex, transcriptIndex + length) == curWord.word) {
+        flushChunk();
+
+        let wordEnd = transcriptIndex + length;
+        pieces.push({
+          from: transcriptIndex,
+          to: wordEnd,
+          time: { start: curWord.start * 1000, end: curWord.end * 1000 },
+        });
+
+        transcriptIndex = wordEnd;
+        transcriptChunkStart = transcriptIndex;
+        alignmentIndex += 1;
+      } else {
+        transcriptIndex += 1;
+      }
+    }
+    flushChunk();
+
+    return pieces;
   }
 
   async load(zip: JSZip) {
@@ -98,32 +159,40 @@ let TranscriptReaderView: React.FC = () => {
   let transcript = lesson.transcript;
   let ref = useRef<HTMLDivElement>(null);
 
+  let [content] = useState(() => transcript.alignContent());
+
   useEffect(() => {
-    let lastIndex = -1;
+    let lastChild: HTMLElement | null = null;
     transcript.setReplayListener(time => {
       let i = _.findIndex(
-        transcript.alignment,
-        word => word.start * 1000 < time && time < word.end * 1000
+        content,
+        word => word.time != null && word.time.start <= time && time <= word.time.end
       );
-      if (i == -1 || i == lastIndex) return;
-      let parent = ref.current!;
-      let child = parent.childNodes[i] as HTMLSpanElement;
-      if (i > 0) {
-        let prevChild = parent.childNodes[i - 1] as HTMLSpanElement;
-        prevChild.style.textDecoration = "none";
+      if (i == -1) return;
+      let children = ref.current!.childNodes as NodeListOf<HTMLElement>;
+      let child = _.find(children, child => child.dataset.word == i.toString())!;
+      if (lastChild) {
+        lastChild.style.textDecoration = "none";
       }
       child.style.textDecoration = "underline";
-      lastIndex = i;
+      lastChild = child;
     });
   }, []);
 
   return (
     <div ref={ref}>
-      {transcript.alignment.map((word, i) => (
-        <>
-          <span key={i}>{word.word}</span>{" "}
-        </>
-      ))}
+      {content.map((word, i) => {
+        let text = transcript.transcript.slice(word.from, word.to);
+        if (text == "\n") {
+          return <br key={i} />;
+        } else {
+          return (
+            <code key={i} data-word={i}>
+              {text}
+            </code>
+          );
+        }
+      })}
     </div>
   );
 };
