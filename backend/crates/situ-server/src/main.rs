@@ -61,7 +61,7 @@ async fn main() -> Result<()> {
 
 async fn accept_connection(docker: Arc<Docker>, stream: TcpStream) {
   if let Err(e) = handle_connection(docker, stream).await {
-    log::error!("Error processing connection: {}", e);
+    log::error!("Error processing connection: {}\n{}", e, e.backtrace());
   }
 }
 
@@ -164,7 +164,8 @@ async fn handle_message(
             .env("RUSTC_LOG", "error")
             .current_dir(cwd);
           let output_str = container.exec_output(&cmd).await?;
-          let output = serde_json::from_str(&output_str)?;
+          let output = serde_json::from_str(output_str.trim())
+            .with_context(|| format!("mirivis output was: {output_str}"))?;
           send_message(writer, ServerMessage::VisOutput { output }).await?;
         }
       }

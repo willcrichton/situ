@@ -10,6 +10,7 @@ import { Lesson, LessonContext } from "./lesson";
 import { Recorder } from "./recorder";
 import { Shell } from "./shell";
 import { TranscriptView } from "./transcript";
+import { Visualizer } from "./visualizer";
 
 let LessonView: React.FC<{ lesson: Lesson }> = ({ lesson }) => {
   return (
@@ -19,7 +20,7 @@ let LessonView: React.FC<{ lesson: Lesson }> = ({ lesson }) => {
         <Split className="split horizontal" direction="horizontal">
           <Split className="split vertical" direction="vertical">
             <Editor />
-            {/* <Visualizer /> */}
+            <Visualizer />
             <Shell />
           </Split>
           <TranscriptView />
