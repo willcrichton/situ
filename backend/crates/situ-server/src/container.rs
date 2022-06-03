@@ -61,7 +61,14 @@ impl Container {
     let mut cmd = Command::new("pidof");
     cmd.arg(process);
     let response = self.exec_output(&cmd).await?;
-    Ok(response.split(' ').next().unwrap().parse::<i64>().unwrap())
+    Ok(
+      response
+        .split(' ')
+        .next()
+        .unwrap()
+        .parse::<i64>()
+        .unwrap_or_else(|_| panic!("Invalid response in get_pid: {response}")),
+    )
   }
 
   pub async fn exec_output(&self, cmd: &Command) -> Result<String, Error> {
