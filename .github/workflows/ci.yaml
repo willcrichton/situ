@@ -9,7 +9,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly-2022-05-23
-          components: rust-src, rustc-dev, llmv-tools-preview, miri, clippy
+          components: rust-src, rustc-dev, miri, clippy
 
       - run: docker pull rust
 
