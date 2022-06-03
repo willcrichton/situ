@@ -1,6 +1,7 @@
 import * as cm from "@codemirror/basic-setup";
 import { rust } from "@codemirror/lang-rust";
-import { keymap } from "@codemirror/view";
+import { RangeSet, StateEffect, StateField } from "@codemirror/state";
+import { Decoration, DecorationSet, EditorView, keymap } from "@codemirror/view";
 import { action, reaction } from "mobx";
 import { observer, useLocalObservable } from "mobx-react";
 import React, { useContext, useEffect, useRef } from "react";
@@ -8,6 +9,7 @@ import React, { useContext, useEffect, useRef } from "react";
 import { Action } from "./actions";
 import { ClientContext } from "./client";
 import { LessonContext } from "./lesson";
+import { VisualizerContext } from "./visualizer";
 
 enum EditorActionType {
   EditorChangeAction = 1,
@@ -25,9 +27,25 @@ interface EditorSaveAction {
 
 type EditorAction = Action & { type: "EditorAction" } & (EditorChangeAction | EditorSaveAction);
 
+let setVisualizerRanges = StateEffect.define<[number, number][]>();
+let visualizerMark = Decoration.mark({ class: "cm-visualizer" });
+let visualizerRanges = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(ranges, tr) {
+    for (let e of tr.effects) {
+      if (e.is(setVisualizerRanges)) {
+        return RangeSet.of(e.value.map(([from, to]) => visualizerMark.range(from, to)));
+      }
+    }
+    return ranges;
+  },
+  provide: f => EditorView.decorations.from(f),
+});
+
 export let Editor = observer(() => {
   let lesson = useContext(LessonContext)!;
   let client = useContext(ClientContext)!;
+  let visualizer = useContext(VisualizerContext)!;
 
   let ref = useRef<HTMLDivElement>(null);
   let state = useLocalObservable<{
@@ -97,7 +115,7 @@ export let Editor = observer(() => {
     let editor = new cm.EditorView({
       state: cm.EditorState.create({
         doc: state.contents,
-        extensions: [cm.basicSetup, language, keyBindings, recordExt],
+        extensions: [cm.basicSetup, language, keyBindings, recordExt, visualizerRanges],
       }),
       parent: ref.current!,
     });
@@ -116,7 +134,22 @@ export let Editor = observer(() => {
       }
     });
 
-    return reaction(() => state.contents, setContents);
+    let d1 = reaction(
+      () => visualizer.step,
+      step => {
+        if (step != -1) {
+          let frame = visualizer.output![step];
+          editor.dispatch({ effects: [setVisualizerRanges.of(frame.ranges)] });
+        }
+      }
+    );
+
+    let d2 = reaction(() => state.contents, setContents);
+
+    return () => {
+      d1();
+      d2();
+    };
   }, []);
 
   return (

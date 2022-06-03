@@ -50,12 +50,16 @@ impl Shell {
           handle_output(msg).await;
         }
       });
-      Ok(Self {
+
+      let mut shell = Self {
         input,
         pid,
         container: Arc::clone(container),
         _output_handle,
-      })
+      };
+      shell.run("cd /mnt/foo").await?;
+
+      Ok(shell)
     } else {
       unreachable!()
     }

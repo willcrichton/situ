@@ -30,6 +30,7 @@ importers:
     specifiers:
       '@codemirror/basic-setup': ^0.20.0
       '@codemirror/lang-rust': ^0.20.0
+      '@codemirror/state': ^0.20.1
       '@codemirror/view': ^0.20.6
       '@nota-lang/esbuild-utils': ^0.3.7
       '@types/lodash': ^4.14.182
@@ -52,6 +53,7 @@ importers:
     devDependencies:
       '@codemirror/basic-setup': 0.20.0
       '@codemirror/lang-rust': 0.20.0
+      '@codemirror/state': 0.20.1
       '@codemirror/view': 0.20.6
       '@nota-lang/esbuild-utils': 0.3.7_esbuild@0.14.39
       '@types/lodash': 4.14.182
@@ -306,7 +308,7 @@ packages:
     resolution: {integrity: sha512-rWDAkE1Qn9O4LsV8tAm/KlzzqdQLaIxqDOLhVYja3rKQIWebD3dixIzg9BAKpjt+0dIaDwtIp3yinD9MefgbQQ==}
     dependencies:
       '@codemirror/language': 0.20.2
-      '@codemirror/state': 0.20.0
+      '@codemirror/state': 0.20.1
       '@codemirror/view': 0.20.6
       '@lezer/common': 0.16.0
     dev: true
@@ -319,7 +321,7 @@ packages:
       '@codemirror/language': 0.20.2
       '@codemirror/lint': 0.20.2
       '@codemirror/search': 0.20.1
-      '@codemirror/state': 0.20.0
+      '@codemirror/state': 0.20.1
       '@codemirror/view': 0.20.6
     dev: true
 
@@ -327,7 +329,7 @@ packages:
     resolution: {integrity: sha512-v9L5NNVA+A9R6zaFvaTbxs30kc69F6BkOoiEbeFw4m4I0exmDEKBILN6mK+GksJtvTzGBxvhAPlVFTdQW8GB7Q==}
     dependencies:
       '@codemirror/language': 0.20.2
-      '@codemirror/state': 0.20.0
+      '@codemirror/state': 0.20.1
       '@codemirror/view': 0.20.6
       '@lezer/common': 0.16.0
     dev: true
@@ -342,7 +344,7 @@ packages:
   /@codemirror/language/0.20.2:
     resolution: {integrity: sha512-WB3Bnuusw0xhVvhBocieYKwJm04SOk5bPoOEYksVHKHcGHFOaYaw+eZVxR4gIqMMcGzOIUil0FsCmFk8yrhHpw==}
     dependencies:
-      '@codemirror/state': 0.20.0
+      '@codemirror/state': 0.20.1
       '@codemirror/view': 0.20.6
       '@lezer/common': 0.16.0
       '@lezer/highlight': 0.16.0
@@ -353,7 +355,7 @@ packages:
   /@codemirror/lint/0.20.2:
     resolution: {integrity: sha512-xEH3wlzoFLEhPEeMVRNoQIhoTCMEtXhVxemGh3FYjLfl/CL3B2Wz+CU7ooP5SKhN1le7JqUNSfiTArFP+IzFuw==}
     dependencies:
-      '@codemirror/state': 0.20.0
+      '@codemirror/state': 0.20.1
       '@codemirror/view': 0.20.6
       crelt: 1.0.5
     dev: true
@@ -361,19 +363,19 @@ packages:
   /@codemirror/search/0.20.1:
     resolution: {integrity: sha512-ROe6gRboQU5E4z6GAkNa2kxhXqsGNbeLEisbvzbOeB7nuDYXUZ70vGIgmqPu0tB+1M3F9yWk6W8k2vrFpJaD4Q==}
     dependencies:
-      '@codemirror/state': 0.20.0
+      '@codemirror/state': 0.20.1
       '@codemirror/view': 0.20.6
       crelt: 1.0.5
     dev: true
 
-  /@codemirror/state/0.20.0:
-    resolution: {integrity: sha512-R3XrAWCS5Xm9lx+4pDET4EUPEg+8bDfAa5zoOFIhx+VChsfew9Vy33dAjCXS5ES4Q8UecW4WM4UudmUFpZ+86A==}
+  /@codemirror/state/0.20.1:
+    resolution: {integrity: sha512-ms0tlV5A02OK0pFvTtSUGMLkoarzh1F8mr6jy1cD7ucSC2X/VLHtQCxfhdSEGqTYlQF2hoZtmLv+amqhdgbwjQ==}
     dev: true
 
   /@codemirror/view/0.20.6:
     resolution: {integrity: sha512-k/Enz4HMcST5Waom2r8y8VtiJfgnU5+Y/pNVO45eIhsRH+0LYtAMgJqqqspWVv1apOuMzmlttw6keaPvkloakg==}
     dependencies:
-      '@codemirror/state': 0.20.0
+      '@codemirror/state': 0.20.1
       style-mod: 4.0.0
       w3c-keyname: 2.2.4
     dev: true

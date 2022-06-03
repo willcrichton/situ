@@ -1,129 +1,111 @@
-use std::collections::HashMap;
-
 use anyhow::{anyhow, Context, Result};
-use miri::{
-  Evaluator, Immediate, InterpCx, InterpResult, LocalValue, Machine, MiriConfig, OpTy,
-  Value,
+use flowistry::{
+  cached::Cache,
+  indexed::impls::LocationDomain,
+  mir::utils::SpanExt,
+  source_map::{Range, Spanner},
 };
-use rustc_apfloat::Float;
+use miri::{Evaluator, InterpCx, InterpResult, LocalValue, Machine, MiriConfig};
+use rustc_hir::def_id::LocalDefId;
 use rustc_middle::{
-  mir::{ClearCrossCrate, LocalInfo},
-  ty::{AdtKind, TyCtxt, TyKind},
+  mir::{Body, ClearCrossCrate, LocalInfo, Location},
+  ty::TyCtxt,
 };
-use rustc_span::Symbol;
-use rustc_target::abi::Size;
-use rustc_type_ir::FloatTy;
+use rustc_span::Span;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-pub struct VisEvaluator<'mir, 'tcx> {
-  tcx: TyCtxt<'tcx>,
-  ecx: InterpCx<'mir, 'tcx, Evaluator<'mir, 'tcx>>,
-}
+use crate::{mvalue::MValue, TypeDefIds};
 
-#[derive(Serialize, Deserialize, Debug, TS)]
-#[serde(tag = "type", content = "value")]
+#[derive(Serialize, Deserialize, Debug, TS, PartialEq)]
 #[ts(export)]
-pub enum MVValue {
-  Bool(bool),
-  Char(String),
-  Uint(u64),
-  Int(i64),
-  Float(f64),
-  Struct {
-    name: String,
-    fields: Vec<(String, MVValue)>,
-  },
-  String(String),
-  Unallocated,
+pub struct MFrame {
+  pub name: String,
+  pub ranges: Vec<(usize, usize)>,
+  pub locals: Vec<(String, MValue)>,
 }
 
-#[derive(Serialize, Deserialize, Debug, TS)]
-#[ts(export)]
-pub struct MVFrame {
-  name: String,
-  locals: HashMap<String, MVValue>,
+pub struct VisEvaluator<'hir, 'mir, 'tcx> {
+  pub(super) tcx: TyCtxt<'tcx>,
+  pub(super) ecx: InterpCx<'mir, 'tcx, Evaluator<'mir, 'tcx>>,
+  pub(super) spanners: Cache<LocalDefId, Spanner<'hir, 'tcx>>,
+  pub(super) type_def_ids: TypeDefIds,
 }
 
-impl<'mir, 'tcx> VisEvaluator<'mir, 'tcx> {
-  pub fn new(tcx: TyCtxt<'tcx>) -> Result<Self> {
+impl<'hir, 'mir, 'tcx> VisEvaluator<'hir, 'mir, 'tcx>
+where
+  'tcx: 'hir,
+{
+  pub fn new(tcx: TyCtxt<'tcx>, type_def_ids: TypeDefIds) -> Result<Self> {
     let (main_id, entry_fn_type) = tcx
       .entry_fn(())
       .context("no main or start function found")?;
     let (ecx, _) = miri::create_ecx(tcx, main_id, entry_fn_type, &MiriConfig {
+      mute_stdout_stderr: true,
       ..Default::default()
     })
     .map_err(|e| anyhow!("{e}"))?;
 
-    Ok(VisEvaluator { tcx, ecx })
+    Ok(VisEvaluator {
+      tcx,
+      ecx,
+      type_def_ids,
+      spanners: Cache::default(),
+    })
   }
 
-  fn read(&self, op: &OpTy<'tcx, miri::Tag>) -> InterpResult<'tcx, MVValue> {
-    let ty = op.layout.ty;
-    Ok(match ty.kind() {
-      TyKind::Adt(adt_def, _subst) => match adt_def.adt_kind() {
-        AdtKind::Struct => {
-          let name = self.tcx.item_name(adt_def.did()).to_ident_string();
-          let fields = adt_def
-            .all_fields()
-            .enumerate()
-            .map(|(i, field)| {
-              let field_op = op.project_field(&self.ecx, i)?;
-              let field_val = self.read(&field_op)?;
-              Ok((field.name.to_ident_string(), field_val))
-            })
-            .collect::<InterpResult<'tcx, Vec<_>>>()?;
-          MVValue::Struct { name, fields }
-        }
-        _ => todo!(),
-      },
-      _ if ty.is_primitive() => {
-        let imm = self.ecx.read_immediate(op)?;
-        let scalar = match &*imm {
-          Immediate::Scalar(scalar) => scalar.check_init()?,
-          _ => unreachable!(),
-        };
-        match ty.kind() {
-          TyKind::Bool => MVValue::Bool(scalar.to_bool()?),
-          TyKind::Char => MVValue::Char(scalar.to_char()?.to_string()),
-          TyKind::Uint(uty) => MVValue::Uint(match uty.bit_width() {
-            Some(width) => scalar.to_uint(Size::from_bits(width))? as u64,
-            None => scalar.to_machine_usize(&self.ecx)? as u64,
-          }),
-          TyKind::Int(ity) => MVValue::Int(match ity.bit_width() {
-            Some(width) => scalar.to_int(Size::from_bits(width))? as i64,
-            None => scalar.to_machine_isize(&self.ecx)? as i64,
-          }),
-          TyKind::Float(fty) => MVValue::Float(match fty {
-            FloatTy::F32 => f32::from_bits(scalar.to_f32()?.to_bits() as u32) as f64,
-            FloatTy::F64 => f64::from_bits(scalar.to_f64()?.to_bits() as u64),
-          }),
-          _ => unreachable!(),
-        }
-      }
-      _ if ty.is_str() => {
-        MVValue::String(self.ecx.read_str(&op.try_as_mplace().unwrap())?.to_string())
-      }
-      _ if ty.is_any_ptr() => match self.ecx.deref_operand(op) {
-        Ok(mplace) => self.read(&mplace.into())?,
-        Err(_) => MVValue::Unallocated,
-      },
-      kind => todo!("{:?} / {:?}", **op, kind),
+  fn spanner<'a>(
+    &'a self,
+    def_id: LocalDefId,
+    body: &Body<'tcx>,
+  ) -> &'a Spanner<'hir, 'tcx> {
+    self.spanners.get(def_id, |_| {
+      let hir = self.tcx.hir();
+      let hir_id = hir.local_def_id_to_hir_id(def_id);
+      let body_id = hir.body_owned_by(hir_id);
+      Spanner::new(self.tcx, body_id, body)
     })
   }
 
   fn build_frame(
     &self,
     frame: &miri::Frame<'mir, 'tcx, miri::Tag, miri::FrameData<'tcx>>,
-  ) -> InterpResult<'tcx, MVFrame> {
+    def_id: LocalDefId,
+    current_loc: &Option<Result<Location, Span>>,
+  ) -> InterpResult<'tcx, MFrame> {
     let source_map = self.tcx.sess.source_map();
     let body = &frame.body;
-    let name = self
-      .tcx
-      .opt_item_name(frame.instance.def_id())
-      .unwrap_or_else(|| Symbol::intern("<unknown>"))
-      .to_ident_string();
-    let locals = frame
+    let location_domain = LocationDomain::new(body);
+
+    let name = match self.tcx.opt_item_name(def_id.to_def_id()) {
+      Some(sym) => sym.to_ident_string(),
+      None => "Unknown".to_string(),
+    };
+
+    let spanner = self.spanner(def_id, body);
+    let spans = match current_loc {
+      Some(Ok(location)) => spanner.location_to_spans(
+        *location,
+        &location_domain,
+        body,
+        flowistry::source_map::EnclosingHirSpans::OuterOnly,
+      ),
+      Some(Err(span)) => span
+        .as_local(spanner.body_span)
+        .into_iter()
+        .collect::<Vec<_>>(),
+      None => vec![],
+    };
+
+    let ranges = Span::merge_overlaps(spans)
+      .into_iter()
+      .map(|span| {
+        let range = Range::from_span(span, source_map).unwrap();
+        (range.char_start, range.char_end)
+      })
+      .collect::<Vec<_>>();
+
+    let mut locals = frame
       .locals
       .iter_enumerated()
       .filter_map(|(local, state)| {
@@ -140,21 +122,38 @@ impl<'mir, 'tcx> VisEvaluator<'mir, 'tcx> {
           _ => None,
         }
       })
-      .collect::<InterpResult<'tcx, HashMap<_, _>>>()?;
-    Ok(MVFrame { name, locals })
+      .collect::<InterpResult<'tcx, Vec<_>>>()?;
+    locals.sort_by_cached_key(|(k, _)| k.clone());
+
+    Ok(MFrame {
+      name,
+      ranges,
+      locals,
+    })
   }
 
-  pub fn step(&mut self) -> InterpResult<'tcx, Option<MVFrame>> {
-    while self.ecx.step()? {
+  pub fn step(&mut self) -> InterpResult<'tcx, Option<MFrame>> {
+    let mut current_loc = None;
+    loop {
       let stack = Machine::stack(&self.ecx);
       if let Some(frame) = stack.last() {
         let def_id = frame.instance.def_id();
         if def_id.is_local() {
-          return Ok(Some(self.build_frame(frame)?));
+          current_loc = Some(frame.current_loc());
+        }
+      }
+
+      if !self.ecx.step()? {
+        return Ok(None);
+      }
+
+      let stack = Machine::stack(&self.ecx);
+      if let Some(frame) = stack.last() {
+        let def_id = frame.instance.def_id();
+        if let Some(local_def_id) = def_id.as_local() {
+          return Ok(Some(self.build_frame(frame, local_def_id, &current_loc)?));
         }
       }
     }
-
-    Ok(None)
   }
 }

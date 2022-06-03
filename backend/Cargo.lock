@@ -243,9 +243,8 @@ dependencies = [
 
 [[package]]
 name = "flowistry"
-version = "0.5.23"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66809f429f862ddcda9c6cb78bd2292049e1ea5edd511a7328b24332e8855d1d"
+version = "0.5.24"
+source = "git+https://github.com/willcrichton/flowistry#7f6c42073075eac002238a04fb1b2552acccea1b"
 dependencies = [
  "anyhow",
  "cfg-if",

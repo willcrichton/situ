@@ -22,6 +22,11 @@ extend = "frontend"
 script.main = "pnpm build"
 dependencies = ["setup-frontend", "build-backend"]
 
+[tasks.lint-frontend]
+extend = "frontend"
+script.main = "pnpm lint"
+dependencies = ["build-frontend"]
+
 [tasks.build-backend-bindings]
 extend = "backend"
 script.main = "cargo test export_bindings"
@@ -30,8 +35,13 @@ script.main = "cargo test export_bindings"
 extend = "backend"
 script.main = "cargo build"
 
+[tasks.lint-backend]
+extend = "backend"
+script.main = "cargo clippy"
+dependencies = ["build-backend"]
+
 [tasks.build.run_task]
-name = ["build-backend", "build-backend-bindings", "build-frontend"]
+name = ["build-backend", "build-backend-bindings", "lint-backend", "build-frontend", "lint-frontend"]
 
 
 ## WATCH
@@ -50,7 +60,7 @@ dependencies = ["setup-frontend"]
 
 [tasks.watch-backend]
 extend = "backend"
-script.main = "cargo watch -d 2 -x 'run --bin situ-server'"
+script.main = "cargo watch -x 'run --bin situ-server'"
 install_crate = { crate_name = "cargo-watch" }
 
 [tasks.watch.run_task]

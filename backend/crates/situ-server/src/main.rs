@@ -6,7 +6,7 @@ use bollard::{
   Docker,
 };
 use futures_util::{stream::SplitSink, SinkExt, StreamExt};
-use mirivis::MVOutput;
+use mirivis::MOutput;
 use serde::{Deserialize, Serialize};
 use tokio::{
   io::AsyncWriteExt,
@@ -37,7 +37,7 @@ enum ClientMessage {
 enum ServerMessage {
   ShellOutput { output: String },
   FileContents { contents: String, path: PathBuf },
-  VisOutput { output: MVOutput },
+  VisOutput { output: MOutput },
 }
 
 #[tokio::main]

@@ -10,22 +10,25 @@ import { Lesson, LessonContext } from "./lesson";
 import { Recorder } from "./recorder";
 import { Shell } from "./shell";
 import { TranscriptView } from "./transcript";
-import { Visualizer } from "./visualizer";
+import { Visualizer, VisualizerContext, VisualizerState } from "./visualizer";
 
 let LessonView: React.FC<{ lesson: Lesson }> = ({ lesson }) => {
+  let [visState] = useState(() => new VisualizerState());
   return (
     <LessonContext.Provider value={lesson}>
-      {lesson.editing ? <Recorder /> : null}
-      <div className="container">
-        <Split className="split horizontal" direction="horizontal">
-          <Split className="split vertical" direction="vertical">
-            <Editor />
-            <Visualizer />
-            <Shell />
+      <VisualizerContext.Provider value={visState}>
+        {lesson.editing ? <Recorder /> : null}
+        <div className="container">
+          <Split className="split horizontal" direction="horizontal">
+            <Split className="split vertical" direction="vertical">
+              <Editor />
+              <Visualizer />
+              <Shell />
+            </Split>
+            <TranscriptView />
           </Split>
-          <TranscriptView />
-        </Split>
-      </div>
+        </div>
+      </VisualizerContext.Provider>
     </LessonContext.Provider>
   );
 };
