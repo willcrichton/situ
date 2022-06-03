@@ -86,6 +86,7 @@ async fn handle_connection(docker: Arc<Docker>, stream: TcpStream) -> Result<()>
     }
   };
   let mut shell = Shell::new(&container, handle_shell_output).await?;
+  shell.run("cd /mnt/foo").await?;
 
   while let Some(msg) = read.next().await {
     if let ControlFlow::Break(_) =

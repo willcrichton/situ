@@ -51,13 +51,12 @@ impl Shell {
         }
       });
 
-      let mut shell = Self {
+      let shell = Self {
         input,
         pid,
         container: Arc::clone(container),
         _output_handle,
       };
-      shell.run("cd /mnt/foo").await?;
 
       Ok(shell)
     } else {
