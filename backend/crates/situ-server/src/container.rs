@@ -1,4 +1,4 @@
-use std::{env, iter, process::Command, sync::Arc};
+use std::{env, iter, process::Command, sync::Arc, collections::HashMap};
 
 use anyhow::Result;
 use bollard::{
@@ -8,7 +8,7 @@ use bollard::{
   },
   errors::Error,
   exec::{CreateExecOptions, StartExecResults},
-  models::{ContainerCreateResponse, HostConfig},
+  models::{ContainerCreateResponse, HostConfig, PortBinding},
   Docker,
 };
 use futures_util::StreamExt;
@@ -22,6 +22,15 @@ pub struct Container {
 
 impl Container {
   pub async fn new(docker: &Arc<Docker>, image: &str) -> Result<Self, Error> {
+    let mut lang_server_ports = HashMap::new();
+    lang_server_ports.insert(
+        String::from("8081/tcp"),
+        Some(vec![PortBinding {
+            host_port: Some(String::from("8081")),
+            ..Default::default()
+        }]),
+    );
+
     let options: Option<CreateContainerOptions<String>> = None;
     let cwd = env::current_dir().unwrap();
     let mount_path = cwd.join("mount");
@@ -30,6 +39,7 @@ impl Container {
       image: Some(image),
       host_config: Some(HostConfig {
         binds: Some(vec![format!("{}:/mnt", mount_path.display())]),
+        port_bindings: Some(lang_server_ports),
         ..Default::default()
       }),
       ..Default::default()

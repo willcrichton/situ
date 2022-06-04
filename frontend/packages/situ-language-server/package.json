@@ -1,0 +1,22 @@
+{
+  "name": "@wcrichto/situ-language-server",
+  "version": "0.1.0",
+  "description": "",
+  "author": "Will Crichton <wcrichto@cs.stanford.edu>",
+  "homepage": "https://github.com/willcrichton/situ",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint --ext js,ts,tsx lib"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.3"
+  },
+  "dependencies": {
+    "typescript": "^4.7.2",
+    "vscode-ws-jsonrpc": "^0.2.0",
+    "ws": "^8.7.0"
+  }
+}
