@@ -8,8 +8,8 @@ import React, { useContext } from "react";
 
 import { Action } from "./actions";
 import { ClientContext } from "./client";
+import { EditorHandler } from "./editor-handler";
 import { LessonContext } from "./lesson";
-import { EditorHandler } from "./lsp-client";
 
 export enum EditorActionType {
   EditorChangeAction = 1,
@@ -69,7 +69,11 @@ export let Editor = observer(() => {
       <div>
         File: <code>{state.path}</code>
       </div>
-      <MonacoEditor height={"40vh"} onMount={handleEditorDidMount} />
+      <MonacoEditor
+        height={"40vh"}
+        onMount={handleEditorDidMount}
+        options={{ minimap: { enabled: false } }}
+      />
     </div>
   );
 });

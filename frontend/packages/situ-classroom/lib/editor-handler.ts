@@ -147,6 +147,10 @@ export const createLanguageClient = (transports: MessageTransports): MonacoLangu
         error: () => ({ action: ErrorAction.Continue }),
         closed: () => ({ action: CloseAction.DoNotRestart }),
       },
+      middleware: {
+        // Disable CodeLens (run, debug, etc)
+        provideCodeLenses: () => undefined,
+      },
     },
     connectionProvider: {
       get: () => {
