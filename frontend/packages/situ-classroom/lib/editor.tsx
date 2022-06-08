@@ -1,5 +1,5 @@
 import MonacoEditor from "@monaco-editor/react";
-import { action, reaction } from "mobx";
+import { action, autorun } from "mobx";
 import { observer, useLocalObservable } from "mobx-react";
 import { editor } from "monaco-editor";
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
@@ -61,7 +61,7 @@ export let Editor = observer(() => {
       })
     );
 
-    reaction(() => state.contents, editorHandler.handleContent);
+    autorun(editorHandler.handleContent);
   }
 
   return (

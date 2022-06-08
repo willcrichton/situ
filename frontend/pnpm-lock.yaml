@@ -47,6 +47,7 @@ importers:
       mobx-react: ^7.5.0
       monaco-editor: ^0.33.0
       monaco-languageclient: ^1.0.1
+      path-browserify: ^1.0.1
       react: ^18.1.0
       react-dom: ^18.1.0
       react-split: ^2.0.14
@@ -71,6 +72,7 @@ importers:
       mobx-react: 7.5.0_zjzbed4ey2pl6an3m4umzh4gbq
       monaco-editor: 0.33.0
       monaco-languageclient: 1.0.1
+      path-browserify: 1.0.1
       react: 18.1.0
       react-dom: 18.1.0_react@18.1.0
       react-split: 2.0.14_react@18.1.0
@@ -2389,6 +2391,10 @@ packages:
     engines: {node: '>=6'}
     dependencies:
       callsites: 3.1.0
+    dev: true
+
+  /path-browserify/1.0.1:
+    resolution: {integrity: sha512-b7uo2UCUOYZcnF/3ID0lulOJi/bafxa1xPe7ZPsammBSpjSWQkjNxlt635YGS2MiR9GjvuXCtz2emr3jbsz98g==}
     dev: true
 
   /path-exists/4.0.0:

@@ -3,6 +3,7 @@ import {
   WebSocketMessageWriter,
   toSocket,
 } from "@codingame/monaco-jsonrpc";
+import { IReactionPublic } from "mobx";
 import { editor } from "monaco-editor";
 import * as monacoImport from "monaco-editor/esm/vs/editor/editor.api";
 import {
@@ -12,6 +13,7 @@ import {
   MonacoLanguageClient,
   MonacoServices,
 } from "monaco-languageclient";
+import path from "path";
 
 import { Client } from "./client";
 import { EditorAction, EditorActionType, EditorState } from "./editor";
@@ -23,6 +25,7 @@ export class EditorHandler {
   client: Client;
   lesson: Lesson;
   state: EditorState;
+  cargoRoot: string | undefined;
 
   constructor(
     editor: editor.IStandaloneCodeEditor,
@@ -96,8 +99,19 @@ export class EditorHandler {
     });
   };
 
-  handleContent = (contents: string) => {
-    const modelFile = this.monaco.Uri.parse(`file://${this.state.path!}`);
+  changedProjects = () => {
+    if (!this.cargoRoot || !this.state.path) return false;
+
+    const relative = path.relative(this.cargoRoot, this.state.path);
+    return !relative || relative.startsWith("..") || path.isAbsolute(relative);
+  };
+
+  handleContent = async (_reaction: IReactionPublic) => {
+    if (!this.state.contents || !this.state.path) {
+      return;
+    }
+
+    const modelFile = this.monaco.Uri.parse(`file://${this.state.path}`);
     const existingModel = this.monaco.editor.getModel(modelFile);
 
     // Update model content if exists, create one if not
@@ -109,8 +123,15 @@ export class EditorHandler {
       this.editor.setModel(model);
     }
 
-    if (!this.state.langClient) {
-      // TODO: if the user switches cargo projects, reinitialize LSP
+    if (!this.state.langClient || this.changedProjects()) {
+      // Stop language server (might fail if cargo check is running)
+      while (this.state.langClient?.isRunning()) {
+        try {
+          await this.state.langClient?.stop();
+        } catch {
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
 
       // Connect to LSP port, passing current file path as query param
       const url = `ws://localhost:8081?absPath=${this.state.path}`;
@@ -131,9 +152,14 @@ export class EditorHandler {
         this.state.langClient = languageClient;
       };
 
-      this.editor.setValue(contents);
+      this.editor.setValue(this.state.contents);
 
-      webSocket.addEventListener("message", ev => console.log(ev.data));
+      webSocket.addEventListener("message", ev => {
+        let root = JSON.parse(ev.data)["cargo-root"];
+        if (root) {
+          this.cargoRoot = root;
+        }
+      });
     }
   };
 }

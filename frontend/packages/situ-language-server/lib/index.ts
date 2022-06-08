@@ -48,4 +48,7 @@ wss.on("connection", (client, request) => {
   socket.onClose(() => {
     localConnection.dispose();
   });
+
+  // Tell client cargo root
+  socket.send(JSON.stringify({ "cargo-root": cwd }));
 });
