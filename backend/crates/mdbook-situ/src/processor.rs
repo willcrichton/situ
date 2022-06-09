@@ -1,13 +1,10 @@
-use std::path::Path;
-
 use anyhow::Result;
 use mdbook::{
   book::{Book, Chapter},
-  errors::Error,
   preprocess::{Preprocessor, PreprocessorContext},
   BookItem,
 };
-use pulldown_cmark::{CowStr, Event, InlineStr, Parser};
+use pulldown_cmark::{CowStr, Event, Parser};
 use pulldown_cmark_to_cmark::cmark;
 use regex::Regex;
 

@@ -49,12 +49,47 @@ let Response: React.FC<React.PropsWithChildren<{}>> = ({ children }) => (
   </form>
 );
 
+let splitHljsOutput = (html: string): string[] => {
+  let parser = new DOMParser();
+  let dom = parser.parseFromString(html, "text/html");
+  let lines: string[][] = [[]];
+  let curLine = () => lines[lines.length - 1];
+  dom.body.childNodes.forEach(child => {
+    if (child.nodeType == Node.TEXT_NODE) {
+      let content = child.textContent!;
+      let childLines = content.split("\n");
+      if (childLines.length > 1) {
+        curLine().push(childLines[0]);
+
+        childLines.slice(1, -1).forEach(childLine => {
+          lines.push([childLine]);
+        });
+
+        lines.push([childLines[childLines.length - 1]]);
+      } else {
+        curLine().push(content);
+      }
+    } else {
+      curLine().push((child as any).outerHTML);
+    }
+  });
+
+  return lines.map(line => line.join(""));
+};
+
 let Snippet: React.FC<{ snippet: string }> = ({ snippet }) => {
+  let ref = useRef(null);
   let hljs = (window as any).hljs;
-  let highlighted = hljs.highlight("rust", snippet);
+  let highlighted: string = hljs.highlight("rust", snippet).value;
+
   return (
-    <pre>
-      <code className="language-rust" dangerouslySetInnerHTML={{ __html: highlighted.value }} />
+    <pre ref={ref}>
+      {splitHljsOutput(highlighted).map((line, i) => (
+        <>
+          <code key={i} className="language-rust" dangerouslySetInnerHTML={{ __html: line }} />
+          {"\n"}
+        </>
+      ))}
     </pre>
   );
 };
@@ -95,7 +130,6 @@ class TracingView extends QuestionBase<Tracing> implements QuestionChild {
       <div className="tracing" ref={this.container}>
         <Prompt>
           <p>
-            For the following questions, you will be given a syntactically valid Rust program.
             Determine whether the program will pass the compiler. If it passes, say what will happen
             when it is executed. If it does not pass, say what kind of compiler error you will get.
           </p>

@@ -1,6 +1,6 @@
-use std::{io, path::PathBuf, process};
+use std::{io, process};
 
-use clap::{Arg, ArgMatches, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 use mdbook::{
   errors::Error,
   preprocess::{CmdPreprocessor, Preprocessor},
