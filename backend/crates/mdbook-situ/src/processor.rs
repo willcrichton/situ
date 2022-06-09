@@ -1,3 +1,6 @@
+use std::path::Path;
+
+use anyhow::Result;
 use mdbook::{
   book::{Book, Chapter},
   errors::Error,
@@ -20,19 +23,39 @@ impl SituProcessor {
     SituProcessor
   }
 
-  fn process_chapter(&self, ctx: &PreprocessorContext, chapter: &mut Chapter) {
+  fn process_chapter(
+    &self,
+    ctx: &PreprocessorContext,
+    chapter: &mut Chapter,
+  ) -> Result<()> {
     let events = Parser::new(&chapter.content);
 
+    let chapter_path = ctx
+      .root
+      .join(&ctx.config.book.src)
+      .join(chapter.path.as_ref().unwrap());
+    let chapter_dir = chapter_path.parent().unwrap();
+
     let mut new_events = Vec::new();
+    let re = Regex::new(r"^\{\{#quiz ([^}]+)\}\}$")?;
     for event in events {
       let new_event = match &event {
         Event::Text(text) => {
           let text = text.as_ref();
-          if text == "{{#quiz}}" {
-            // TODO: inject inline div?
-            Event::Html(to_cowstr(format!("{}", ctx.root.display())))
-          } else {
-            event
+          match re.captures(text) {
+            Some(captures) => {
+              let quiz_path_rel = captures.get(1).unwrap().as_str();
+              let quiz_path_abs = chapter_dir.join(quiz_path_rel);
+              let content_toml = std::fs::read_to_string(quiz_path_abs)?;
+              let content = content_toml.parse::<toml::Value>()?;
+              let content_json = serde_json::to_string(&content)?;
+
+              Event::Html(to_cowstr(format!(
+                r#"<div class="situ-quiz-placeholder" data-quiz="{}"></div>"#,
+                html_escape::encode_double_quoted_attribute(&content_json)
+              )))
+            }
+            None => event,
           }
         }
         _ => event,
@@ -41,10 +64,12 @@ impl SituProcessor {
     }
 
     let mut new_content = String::new();
-    // TODO: inject script header
 
-    cmark(new_events.into_iter(), &mut new_content).unwrap();
+    cmark(new_events.into_iter(), &mut new_content)?;
+
     chapter.content = new_content;
+
+    Ok(())
   }
 }
 
@@ -53,10 +78,10 @@ impl Preprocessor for SituProcessor {
     "situ"
   }
 
-  fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> Result<Book, Error> {
+  fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> Result<Book> {
     book.for_each_mut(|item| {
       if let BookItem::Chapter(chapter) = item {
-        self.process_chapter(ctx, chapter);
+        self.process_chapter(ctx, chapter).unwrap();
       }
     });
 

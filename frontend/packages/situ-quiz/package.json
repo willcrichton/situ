@@ -1,0 +1,27 @@
+{
+  "name": "@wcrichto/situ-quiz",
+  "version": "0.1.0",
+  "description": "",
+  "author": "Will Crichton <wcrichto@cs.stanford.edu>",
+  "homepage": "https://github.com/willcrichton/situ",
+  "license": "MIT",
+  "scripts": {
+    "build": "node build.mjs",
+    "lint": "eslint --ext js,ts,tsx lib"
+  },
+  "devDependencies": {
+    "@nota-lang/esbuild-utils": "^0.3.7",
+    "@types/lodash": "^4.14.182",
+    "@types/react": "^18.0.9",
+    "@types/react-dom": "^18.0.5",
+    "ansi-to-html": "^0.7.2",
+    "axios": "^0.27.2",
+    "esbuild": "^0.14.39",
+    "esbuild-sass-plugin": "^2.2.6",
+    "lodash": "^4.17.21",
+    "mobx": "^6.6.0",
+    "mobx-react": "^7.5.0",
+    "react": "^18.1.0",
+    "react-dom": "^18.1.0"
+  }
+}

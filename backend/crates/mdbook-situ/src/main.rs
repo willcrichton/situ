@@ -1,6 +1,6 @@
-use std::{io, process};
+use std::{io, path::PathBuf, process};
 
-use clap::{Arg, ArgMatches, Command};
+use clap::{Arg, ArgMatches, Parser, Subcommand};
 use mdbook::{
   errors::Error,
   preprocess::{CmdPreprocessor, Preprocessor},
@@ -11,24 +11,26 @@ use self::processor::SituProcessor;
 
 mod processor;
 
-pub fn make_app() -> Command<'static> {
-  Command::new("situ-preprocessor")
-    .about("A mdbook preprocessor with Situ support")
-    .subcommand(
-      Command::new("supports")
-        .arg(Arg::new("renderer").required(true))
-        .about("Check whether a renderer is supported by this preprocessor"),
-    )
+#[derive(Parser)]
+#[clap(author, version, about)]
+struct Args {
+  #[clap(subcommand)]
+  command: Option<Command>,
+}
+
+#[derive(Subcommand)]
+enum Command {
+  Supports { renderer: String },
 }
 
 fn main() {
-  let matches = make_app().get_matches();
+  let args = Args::parse();
 
   // Users will want to construct their own preprocessor here
   let preprocessor = SituProcessor::new();
 
-  if let Some(sub_args) = matches.subcommand_matches("supports") {
-    handle_supports(&preprocessor, sub_args);
+  if let Some(Command::Supports { renderer }) = args.command {
+    handle_supports(&preprocessor, &renderer);
   } else if let Err(e) = handle_preprocessing(&preprocessor) {
     eprintln!("{}", e);
     process::exit(1);
@@ -57,8 +59,7 @@ fn handle_preprocessing(pre: &dyn Preprocessor) -> Result<(), Error> {
   Ok(())
 }
 
-fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> ! {
-  let renderer = sub_args.value_of("renderer").expect("Required argument");
+fn handle_supports(pre: &dyn Preprocessor, renderer: &str) -> ! {
   let supported = pre.supports_renderer(renderer);
 
   // Signal whether the renderer is supported by exiting with 1 or 0.
